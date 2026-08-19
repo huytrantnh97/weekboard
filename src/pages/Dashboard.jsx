@@ -14,7 +14,7 @@ const TITLES = {
   no_date:    'No date',
 }
 
-export default function Dashboard({ onOpenPlanning, onOpenNew }) {
+export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
   const [logs, setLogs] = useState([])
@@ -69,6 +69,9 @@ export default function Dashboard({ onOpenPlanning, onOpenNew }) {
             onClick={onOpenPlanning}>
             Lập kế hoạch tuần sau
           </button>
+          {onSignOut && (
+            <button className="btn ghost" onClick={onSignOut} title="Đăng xuất">Thoát</button>
+          )}
         </div>
       </header>
 
