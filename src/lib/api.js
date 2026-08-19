@@ -76,10 +76,18 @@ export const listTopics = () =>
     .order('position').then(ok)
 
 export const createTopic = (title) =>
-  supabase.from('topics').insert({ title }).select().single().then(ok)
+  supabase.from('topics')
+    .insert({ title, position: Date.now() }).select().single().then(ok)
+
+export const updateTopic = (id, patch) =>
+  supabase.from('topics').update(patch).eq('id', id).select().single().then(ok)
 
 export const archiveTopic = (id) =>
-  supabase.from('topics').update({ status: 'archived' }).eq('id', id).then(ok)
+  updateTopic(id, { status: 'archived' })
+
+/** Xoá hẳn. Stuff thuộc topic không mất — topic_id chỉ bị gỡ về null. */
+export const deleteTopic = (id) =>
+  supabase.from('topics').delete().eq('id', id).then(ok)
 
 /* --------------------------- HABIT LOGS -------------------------- */
 
