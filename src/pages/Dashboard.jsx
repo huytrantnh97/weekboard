@@ -4,7 +4,7 @@ import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
   createStuff,
 } from '../lib/api'
-import { horizons, buildWeek, bucketOf, isOverdue, daysOf } from '../lib/dates'
+import { horizons, buildWeek, bucketOf, isOverdue, sortStuff } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
 import Topics from '../components/Topics'
@@ -45,11 +45,13 @@ export default function Dashboard({ onOpenPlanning, onSignOut }) {
       const b = bucketOf(s, h)
       if (g[b]) g[b].push(s)
     }
+    for (const k of Object.keys(g)) g[k] = sortStuff(g[k], h)
     return g
   }, [stuff, h])
 
   const overdue = useMemo(
-    () => stuff.filter((s) => s.type !== 'habit' && isOverdue(s, h)), [stuff, h])
+    () => sortStuff(stuff.filter((s) => s.type !== 'habit' && isOverdue(s, h)), h),
+    [stuff, h])
 
   const toggle = async (item, on) => {
     if (item.type === 'habit') await toggleHabitLog(item.id, item.occurrence_date, on)
