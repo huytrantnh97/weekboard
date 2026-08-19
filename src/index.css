@@ -1,0 +1,178 @@
+/* =====================================================================
+   WEEKBOARD — design tokens
+   Hướng: "giấy kẻ ô + mực xanh rừng". Nền giấy lạnh, chữ mực đậm,
+   một điểm nhấn xanh pine cho hôm nay và một điểm vàng đồng cho
+   tín hiệu "đến lúc lập kế hoạch".
+   ===================================================================== */
+:root {
+  --ink:        #15181B;
+  --ink-2:      #4A5257;
+  --ink-3:      #8A9397;
+  --paper:      #EFF2F0;
+  --surface:    #FFFFFF;
+  --rule:       #DCE2DE;
+  --rule-soft:  #E9EDEA;
+
+  --pine:       #1F4D3D;
+  --pine-soft:  #E3EDE7;
+  --gold:       #B8891A;
+  --gold-soft:  #FAF0D7;
+  --danger:     #97302B;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 16px;
+
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px;
+  --sp-4: 16px; --sp-5: 24px; --sp-6: 36px;
+
+  --font-ui:   'Be Vietnam Pro', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --shadow: 0 1px 2px rgba(21,24,27,.05), 0 8px 24px -16px rgba(21,24,27,.25);
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------- type */
+h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.02em; }
+h1 { font-size: 26px; }
+h2 { font-size: 15px; }
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* -------------------------------------------------------------- layout */
+.app     { max-width: 1180px; margin: 0 auto; padding: var(--sp-5) var(--sp-4) 96px; }
+.section { margin-top: var(--sp-6); }
+
+.section-head {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--rule);
+}
+.count {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);
+}
+
+/* ------------------------------------------------------- SIGNATURE: rail
+   Dải 7 ngày. Ngày đã qua co lại thành vạch mảnh; hôm nay có gạch pine.  */
+.rail { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+        border-radius: var(--r-md); overflow: hidden; }
+
+/* màn hình ngang / rộng → bảng 7 cột */
+@media (min-width: 820px), (orientation: landscape) and (min-width: 640px) {
+  .rail { grid-auto-flow: column; grid-auto-columns: 1fr; }
+  .rail.has-past { grid-template-columns: var(--rail-cols); }
+  .day { min-height: 200px; }
+}
+
+.day {
+  background: var(--surface);
+  padding: var(--sp-3);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  min-width: 0;
+}
+.day.past    { background: #F6F8F7; }
+.day.today   { box-shadow: inset 0 3px 0 var(--pine); }
+.day.collapsed { padding: var(--sp-2) var(--sp-1); align-items: center; }
+.day.collapsed .day-items { display: none; }
+
+.day-head {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-2);
+}
+.day-head .dow { font-weight: 600; color: var(--ink); letter-spacing: .04em; }
+.day.today .day-head .dow { color: var(--pine); }
+.day-items { display: flex; flex-direction: column; gap: var(--sp-2); }
+
+/* --------------------------------------------------------------- cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--r-sm);
+  padding: var(--sp-2) var(--sp-3);
+  display: flex; gap: var(--sp-2); align-items: flex-start;
+  cursor: grab;
+}
+.card:active { cursor: grabbing; }
+.card.is-done .card-title { color: var(--ink-3); text-decoration: line-through; }
+.card.is-overdue { border-left: 3px solid var(--danger); }
+.card.habit      { border-left: 3px solid var(--pine); }
+.card-title { font-size: 14px; line-height: 1.35; }
+.card-meta  { font-family: var(--font-mono); font-size: 11px; color: var(--ink-3); }
+
+.tick {
+  flex: 0 0 auto; width: 16px; height: 16px; margin-top: 2px;
+  border: 1.5px solid var(--rule); border-radius: 4px;
+  background: var(--surface); cursor: pointer;
+}
+.tick[data-on='true'] { background: var(--pine); border-color: var(--pine); }
+
+/* ------------------------------------------------------------- buttons */
+.btn {
+  font: inherit; font-size: 13px; font-weight: 600;
+  padding: 8px 14px; border-radius: var(--r-sm);
+  border: 1px solid var(--rule); background: var(--surface); color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover  { border-color: var(--ink-3); }
+.btn:focus-visible { outline: 2px solid var(--pine); outline-offset: 2px; }
+.btn.primary { background: var(--pine); border-color: var(--pine); color: #fff; }
+.btn.ghost   { border-color: transparent; background: transparent; color: var(--ink-2); }
+
+/* nút "Lập kế hoạch tuần sau" — phát sáng khi đến hạn */
+.btn.glow {
+  background: var(--gold-soft); border-color: var(--gold); color: #6B4E06;
+  animation: pulse 2.4s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184,137,26,.35); }
+  50%      { box-shadow: 0 0 0 6px rgba(184,137,26,0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn.glow { animation: none; box-shadow: 0 0 0 3px rgba(184,137,26,.25); }
+}
+
+/* --------------------------------------------------------- planning page */
+.plan-grid { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; }
+@media (min-width: 900px) {
+  .plan-grid { grid-template-columns: 280px 1fr; align-items: start; }
+}
+.pool {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-md); padding: var(--sp-3);
+  display: flex; flex-direction: column; gap: var(--sp-2);
+  position: sticky; top: var(--sp-4);
+  max-height: calc(100vh - 48px); overflow: auto;
+}
+.drop-active { background: var(--pine-soft); }
+
+/* ------------------------------------------------------------ topics */
+.topic-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.topic {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 6px 14px; font-size: 13px;
+}
+
+.empty { color: var(--ink-3); font-size: 13px; padding: var(--sp-2) 0; }
