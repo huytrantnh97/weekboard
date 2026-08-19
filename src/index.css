@@ -176,3 +176,37 @@ h2 { font-size: 15px; }
 }
 
 .empty { color: var(--ink-3); font-size: 13px; padding: var(--sp-2) 0; }
+
+/* --------------------------------------------------------- form fields */
+.field {
+  font: inherit; font-size: 14px; color: var(--ink);
+  padding: 9px 11px;
+  border: 1px solid var(--rule); border-radius: var(--r-sm);
+  background: var(--surface);
+  width: 100%; resize: vertical;
+}
+.field:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
+
+/* ------------------------------------------------------------- topics */
+.topic { font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.topic:hover { border-color: var(--ink-3); }
+.topic-on { background: var(--pine); border-color: var(--pine); color: #fff; }
+.topic-n {
+  font-family: var(--font-mono); font-size: 11px;
+  padding: 0 5px; border-radius: 999px;
+  background: var(--pine-soft); color: var(--pine);
+}
+.topic-on .topic-n { background: rgba(255,255,255,.2); color: #fff; }
+
+.panel {
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-md); padding: var(--sp-4);
+  display: grid; gap: var(--sp-3);
+}
+.topic-item {
+  display: flex; align-items: center; gap: var(--sp-2);
+  font-size: 14px; padding: 6px 8px;
+  border: 1px solid var(--rule-soft); border-radius: var(--r-sm);
+  cursor: pointer;
+}
+.topic-item:hover { border-color: var(--rule); }
