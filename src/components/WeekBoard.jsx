@@ -9,8 +9,11 @@ import StuffCard from './StuffCard'
  * - Màn hình dọc (điện thoại) → xếp dọc
  * - Mặc định thu gọn các ngày đã trôi qua, bấm để mở lại.
  */
-export default function WeekBoard({ days, today = new Date(), onToggle, renderDay }) {
+export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
+                                   onQuickAdd, renderDay }) {
   const [showPast, setShowPast] = useState(false)
+  const [addDay, setAddDay] = useState(null)
+  const [draft, setDraft] = useState('')
   const t = startOfDay(today)
 
   const pastCount = days.filter((d) => isBefore(d.date, t)).length
@@ -57,10 +60,32 @@ export default function WeekBoard({ days, today = new Date(), onToggle, renderDa
                   : (
                     <div className="day-items">
                       {d.items.map((it) => (
-                        <StuffCard key={it.key} item={it} onToggle={onToggle} />
+                        <StuffCard key={it.key} item={it}
+                                   onToggle={onToggle} onOpen={onOpen} />
                       ))}
                     </div>
                   )
+              )}
+
+              {!shrunk && onQuickAdd && (
+                addDay === d.key ? (
+                  <input
+                    className="field day-add-input" autoFocus placeholder="Việc gì?"
+                    value={draft}
+                    onChange={(e) => setDraft(e.target.value)}
+                    onBlur={() => { setAddDay(null); setDraft('') }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') { setAddDay(null); setDraft('') }
+                      if (e.key === 'Enter' && draft.trim()) {
+                        onQuickAdd(d.key, draft.trim())
+                        setDraft('')          // giữ ô mở để nhập tiếp
+                      }
+                    }}
+                  />
+                ) : (
+                  <button className="day-add" onClick={() => setAddDay(d.key)}
+                          aria-label="Thêm việc vào ngày này">+</button>
+                )
               )}
             </div>
           )

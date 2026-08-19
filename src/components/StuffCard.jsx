@@ -2,7 +2,7 @@ import { dateText } from '../lib/dates'
 
 const ICON = { task: '', event: '◆', habit: '↻' }
 
-export default function StuffCard({ item, onToggle, overdue = false, dragProps }) {
+export default function StuffCard({ item, onToggle, onOpen, overdue = false, dragProps }) {
   const meta = [
     item.start_time?.slice(0, 5),
     item.type !== 'task' ? `${ICON[item.type]} ${dateText(item)}`.trim() : dateText(item),
@@ -26,10 +26,19 @@ export default function StuffCard({ item, onToggle, overdue = false, dragProps }
         onPointerDown={(e) => e.stopPropagation()}
         onClick={(e) => { e.stopPropagation(); onToggle?.(item, !item.done) }}
       />
-      <div style={{ minWidth: 0 }}>
-        <div className="card-title">{item.title}</div>
-        {meta && <div className="card-meta">{meta}</div>}
-      </div>
+
+      {onOpen ? (
+        <button type="button" className="card-body"
+                onClick={(e) => { e.stopPropagation(); onOpen(item) }}>
+          <span className="card-title">{item.title}</span>
+          {meta && <span className="card-meta">{meta}</span>}
+        </button>
+      ) : (
+        <div className="card-body">
+          <span className="card-title">{item.title}</span>
+          {meta && <span className="card-meta">{meta}</span>}
+        </div>
+      )}
     </div>
   )
 }
