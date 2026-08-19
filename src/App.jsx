@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { supabase, listTopics } from './lib/api'
+import { supabase } from './lib/api'
 import Dashboard from './pages/Dashboard'
 import Planning from './pages/Planning'
-import StuffForm from './components/StuffForm'
 
 // Supabase yêu cầu email. Nếu bạn gõ tên đăng nhập không có "@",
 // app tự ghép thêm domain này để thành email hợp lệ.
@@ -12,8 +11,6 @@ export const toEmail = (id) => (id.includes('@') ? id : `${id.trim()}@${DOMAIN}`
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [page, setPage] = useState('home')
-  const [topics, setTopics] = useState([])
-  const [adding, setAdding] = useState(false)
   const [tick, setTick] = useState(0)
 
   useEffect(() => {
@@ -22,32 +19,14 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  useEffect(() => { if (session) listTopics().then(setTopics) }, [session])
-
   if (session === undefined) return <div className="app" style={{ paddingTop: 80 }}>Đang mở…</div>
   if (!session) return <SignIn />
 
-  return (
-    <>
-      {page === 'home'
-        ? <Dashboard key={tick}
-                     onOpenPlanning={() => setPage('plan')}
-                     onOpenNew={() => setAdding(true)}
-                     onSignOut={() => supabase.auth.signOut()} />
-        : <Planning onDone={() => { setPage('home'); setTick((t) => t + 1) }} />}
-
-      {adding && (
-        <div className="app" style={{ paddingTop: 0 }}>
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--rule)',
-                        borderRadius: 'var(--r-md)', padding: 20 }}>
-            <StuffForm topics={topics}
-                       onSaved={() => { setAdding(false); setTick((t) => t + 1) }}
-                       onCancel={() => setAdding(false)} />
-          </div>
-        </div>
-      )}
-    </>
-  )
+  return page === 'home'
+    ? <Dashboard key={tick}
+                 onOpenPlanning={() => setPage('plan')}
+                 onSignOut={() => supabase.auth.signOut()} />
+    : <Planning onDone={() => { setPage('home'); setTick((t) => t + 1) }} />
 }
 
 function SignIn() {

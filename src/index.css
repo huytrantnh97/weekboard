@@ -210,3 +210,36 @@ h2 { font-size: 15px; }
   cursor: pointer;
 }
 .topic-item:hover { border-color: var(--rule); }
+
+/* ------------------------------------------------ card body / quick add */
+.card-body {
+  font: inherit; text-align: left; background: none; border: 0; padding: 0;
+  cursor: pointer; min-width: 0; flex: 1;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.card-body:focus-visible { outline: 2px solid var(--pine); outline-offset: 3px; border-radius: 3px; }
+
+.day-add {
+  font: inherit; font-size: 16px; line-height: 1; color: var(--ink-3);
+  background: none; border: 1px dashed var(--rule); border-radius: var(--r-sm);
+  padding: 5px 0; cursor: pointer; opacity: 0; transition: opacity .12s;
+}
+.day:hover .day-add, .day-add:focus-visible { opacity: 1; }
+.day-add:hover { color: var(--pine); border-color: var(--pine); }
+@media (hover: none) { .day-add { opacity: 1; } }   /* điện thoại: luôn hiện */
+
+.day-add-input { font-size: 13px; padding: 6px 8px; }
+
+/* ---------------------------------------------------------------- modal */
+.modal-bg {
+  position: fixed; inset: 0; z-index: 50;
+  background: rgba(21, 24, 27, .45);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 24px 16px; overflow: auto;
+}
+.modal {
+  background: var(--surface); border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+  padding: 20px; width: 100%; max-width: 460px;
+  margin: auto;
+}
