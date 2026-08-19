@@ -4,12 +4,17 @@ import Dashboard from './pages/Dashboard'
 import Planning from './pages/Planning'
 import StuffForm from './components/StuffForm'
 
+// Supabase yêu cầu email. Nếu bạn gõ tên đăng nhập không có "@",
+// app tự ghép thêm domain này để thành email hợp lệ.
+const DOMAIN = import.meta.env.VITE_LOGIN_DOMAIN || 'weekboard.local'
+export const toEmail = (id) => (id.includes('@') ? id : `${id.trim()}@${DOMAIN}`)
+
 export default function App() {
   const [session, setSession] = useState(undefined)
   const [page, setPage] = useState('home')
   const [topics, setTopics] = useState([])
   const [adding, setAdding] = useState(false)
-  const [tick, setTick] = useState(0)          // ép Dashboard tải lại
+  const [tick, setTick] = useState(0)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -19,7 +24,7 @@ export default function App() {
 
   useEffect(() => { if (session) listTopics().then(setTopics) }, [session])
 
-  if (session === undefined) return <div className="app">Đang tải…</div>
+  if (session === undefined) return <div className="app" style={{ paddingTop: 80 }}>Đang mở…</div>
   if (!session) return <SignIn />
 
   return (
@@ -27,7 +32,8 @@ export default function App() {
       {page === 'home'
         ? <Dashboard key={tick}
                      onOpenPlanning={() => setPage('plan')}
-                     onOpenNew={() => setAdding(true)} />
+                     onOpenNew={() => setAdding(true)}
+                     onSignOut={() => supabase.auth.signOut()} />
         : <Planning onDone={() => { setPage('home'); setTick((t) => t + 1) }} />}
 
       {adding && (
@@ -45,29 +51,51 @@ export default function App() {
 }
 
 function SignIn() {
-  const [email, setEmail] = useState('')
-  const [sent, setSent] = useState(false)
-  const send = async (e) => {
+  const [id, setId] = useState('')
+  const [pw, setPw] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [err, setErr] = useState(null)
+
+  const submit = async (e) => {
     e.preventDefault()
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: { emailRedirectTo: window.location.href },
+    setErr(null)
+    setBusy(true)
+    const { error } = await supabase.auth.signInWithPassword({
+      email: toEmail(id), password: pw,
     })
-    if (error) alert(error.message); else setSent(true)
+    setBusy(false)
+    if (error) setErr(error.message)
   }
+
+  const field = {
+    font: 'inherit', fontSize: 15, padding: '10px 12px',
+    border: '1px solid var(--rule)', borderRadius: 'var(--r-sm)',
+    background: 'var(--surface)', color: 'var(--ink)', width: '100%',
+  }
+
   return (
-    <div className="app" style={{ maxWidth: 380, paddingTop: 96 }}>
+    <div className="app" style={{ maxWidth: 340, paddingTop: 100 }}>
       <div className="eyebrow">WeekBoard</div>
-      <h1 style={{ marginBottom: 16 }}>Đăng nhập</h1>
-      {sent ? (
-        <p>Đã gửi link đăng nhập tới {email}. Mở mail trên chính thiết bị này.</p>
-      ) : (
-        <form onSubmit={send} style={{ display: 'grid', gap: 8 }}>
-          <input className="btn" style={{ textAlign: 'left', fontWeight: 400 }}
-                 type="email" required placeholder="email của bạn"
-                 value={email} onChange={(e) => setEmail(e.target.value)} />
-          <button className="btn primary" type="submit">Gửi link đăng nhập</button>
-        </form>
+      <h1 style={{ marginBottom: 20 }}>Đăng nhập</h1>
+
+      <form onSubmit={submit} style={{ display: 'grid', gap: 10 }}>
+        <input style={field} autoFocus required autoComplete="username"
+               placeholder="Tên đăng nhập"
+               value={id} onChange={(e) => setId(e.target.value)} />
+        <input style={field} type="password" required autoComplete="current-password"
+               placeholder="Mật khẩu"
+               value={pw} onChange={(e) => setPw(e.target.value)} />
+        <button className="btn primary" type="submit" disabled={busy}>
+          {busy ? 'Đang vào…' : 'Vào app'}
+        </button>
+      </form>
+
+      {err && (
+        <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 12 }}>
+          {err === 'Invalid login credentials'
+            ? 'Sai tên đăng nhập hoặc mật khẩu.'
+            : err}
+        </p>
       )}
     </div>
   )
