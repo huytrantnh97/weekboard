@@ -60,7 +60,7 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
                   : (
                     <div className="day-items">
                       {d.items.map((it) => (
-                        <StuffCard key={it.key} item={it}
+                        <StuffCard key={it.key} item={it} hideDate
                                    onToggle={onToggle} onOpen={onOpen} />
                       ))}
                     </div>

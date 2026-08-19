@@ -2,10 +2,16 @@ import { dateText } from '../lib/dates'
 
 const ICON = { task: '', event: '◆', habit: '↻' }
 
-export default function StuffCard({ item, onToggle, onOpen, overdue = false, dragProps }) {
+export default function StuffCard({ item, onToggle, onOpen, overdue = false,
+                                   hideDate = false, dragProps }) {
+  // Trong lưới tuần, stuff đã nằm đúng ô ngày rồi → chỉ hiện giờ.
+  const when = hideDate
+    ? (item.type === 'task' ? '' : ICON[item.type])
+    : `${item.type !== 'task' ? ICON[item.type] : ''} ${dateText(item)}`.trim()
+
   const meta = [
     item.start_time?.slice(0, 5),
-    item.type !== 'task' ? `${ICON[item.type]} ${dateText(item)}`.trim() : dateText(item),
+    when,
     overdue ? 'Quá hạn' : null,
   ].filter(Boolean).join(' · ')
 

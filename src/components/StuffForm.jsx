@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { createStuff, updateStuff, deleteStuff } from '../lib/api'
 import { DAY_LABEL } from '../lib/dates'
+import { DateField, MonthField } from './DateField'
 
 const empty = {
   type: 'task', title: '', note: '', topic_id: null,
@@ -122,21 +123,16 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
           </Row>
 
           {f.date_mode === 'single' && (
-            <input type="date" className="field" value={f.start_date}
-                   onChange={(e) => set('start_date', e.target.value)} />
+            <DateField value={f.start_date} onChange={(v) => set('start_date', v)} />
           )}
           {f.date_mode === 'range' && (
             <Row label="Từ – đến">
-              <input type="date" className="field" style={{ width: 'auto' }} value={f.start_date}
-                     onChange={(e) => set('start_date', e.target.value)} />
-              <input type="date" className="field" style={{ width: 'auto' }}
-                     value={f.end_date} min={f.start_date}
-                     onChange={(e) => set('end_date', e.target.value)} />
+              <DateField value={f.start_date} onChange={(v) => set('start_date', v)} />
+              <DateField value={f.end_date} onChange={(v) => set('end_date', v)} />
             </Row>
           )}
           {f.date_mode === 'month' && (
-            <input type="month" className="field" value={f.month}
-                   onChange={(e) => set('month', e.target.value)} />
+            <MonthField value={f.month} onChange={(v) => set('month', v)} />
           )}
           {f.type === 'event' && (
             <Row label="Giờ">
@@ -172,10 +168,8 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
             </Row>
           )}
           <Row label="Bắt đầu / kết thúc lặp">
-            <input type="date" className="field" style={{ width: 'auto' }} value={f.repeat_from}
-                   onChange={(e) => set('repeat_from', e.target.value)} />
-            <input type="date" className="field" style={{ width: 'auto' }} value={f.repeat_until}
-                   onChange={(e) => set('repeat_until', e.target.value)} />
+            <DateField value={f.repeat_from} onChange={(v) => set('repeat_from', v)} />
+            <DateField value={f.repeat_until} onChange={(v) => set('repeat_until', v)} />
           </Row>
         </>
       )}

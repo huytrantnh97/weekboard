@@ -3,7 +3,7 @@ import {
   createTopic, updateTopic, archiveTopic, deleteTopic,
   createStuff, setDone,
 } from '../lib/api'
-import { dateText } from '../lib/dates'
+import { dateText, horizons, sortStuff } from '../lib/dates'
 
 /**
  * Topics/Goals to brainstorm.
@@ -62,7 +62,7 @@ function TopicPanel({ topic, stuff, onChanged, onClose }) {
   const [draft, setDraft] = useState('')
   const [type, setType] = useState('task')
 
-  const items = stuff.filter((s) => s.topic_id === topic.id)
+  const items = sortStuff(stuff.filter((s) => s.topic_id === topic.id), horizons())
 
   const saveName = async () => {
     const t = name.trim()
