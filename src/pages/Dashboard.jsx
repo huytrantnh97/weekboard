@@ -6,6 +6,7 @@ import {
 import { horizons, buildWeek, bucketOf, isOverdue, daysOf } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
+import Topics from '../components/Topics'
 
 const TITLES = {
   next_week:  'Next week',
@@ -99,10 +100,7 @@ export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
       ))}
 
       <Section title="Topics / Goals to brainstorm" count={topics.length}>
-        <div className="topic-list">
-          {topics.map((t) => <span className="topic" key={t.id}>{t.title}</span>)}
-          {topics.length === 0 && <div className="empty">Thêm một chủ đề để bắt đầu nghĩ.</div>}
-        </div>
+        <Topics topics={topics} stuff={stuff} onChanged={load} />
       </Section>
     </div>
   )
