@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createStuff, updateStuff, deleteStuff } from '../lib/api'
+import { createStuff, updateStuff, deleteStuff, normalise } from '../lib/api'
 import { DAY_LABEL } from '../lib/dates'
 import { DateField, MonthField } from './DateField'
 
@@ -75,7 +75,8 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
         }
       }
 
-      if (editing) await updateStuff(item.id, payload)
+      // normalise() lọc về đúng các cột có thật — cả hai nhánh đều phải qua đây
+      if (editing) await updateStuff(item.id, normalise(payload))
       else await createStuff(payload)
       onSaved?.()
     } catch (e2) {
