@@ -130,3 +130,19 @@ export function buildWeek(weekStart, stuff, habitLogs = []) {
   }
   return days.map((d) => ({ date: d, key: iso(d), items: map[iso(d)] }))
 }
+
+/**
+ * Sắp xếp theo thứ tự thời gian: ngày trước, rồi giờ, rồi tên.
+ * Việc chưa có ngày xếp xuống cuối.
+ */
+export function sortStuff(list, h) {
+  return [...list].sort((a, b) => {
+    const da = anchorDate(a, h), db = anchorDate(b, h)
+    if (da && db && +da !== +db) return da - db
+    if (da && !db) return -1
+    if (!da && db) return 1
+    const ta = a.start_time ?? '99:99', tb = b.start_time ?? '99:99'
+    if (ta !== tb) return ta.localeCompare(tb)
+    return (a.title ?? '').localeCompare(b.title ?? '', 'vi')
+  })
+}
