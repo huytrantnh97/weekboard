@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
+  createStuff,
 } from '../lib/api'
 import { horizons, buildWeek, bucketOf, isOverdue, daysOf } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
 import Topics from '../components/Topics'
+import StuffForm from '../components/StuffForm'
 
 const TITLES = {
   next_week:  'Next week',
@@ -15,7 +17,8 @@ const TITLES = {
   no_date:    'No date',
 }
 
-export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
+export default function Dashboard({ onOpenPlanning, onSignOut }) {
+  const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
   const [logs, setLogs] = useState([])
@@ -54,6 +57,17 @@ export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
     load()
   }
 
+  /** Mở form sửa. Habit trong lưới tuần → sửa quy tắc lặp của habit gốc. */
+  const openEditor = (item) => setEditing(stuff.find((s) => s.id === item.id) ?? item)
+
+  const quickAdd = async (dateKey, title) => {
+    await createStuff({ type: 'task', title, date_mode: 'single', start_date: dateKey })
+    load()
+  }
+
+  const closeEditor = () => setEditing(undefined)
+  const afterWrite = () => { closeEditor(); load() }
+
   const isSunday = new Date().getDay() === 0
 
   return (
@@ -64,7 +78,7 @@ export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
           <h1>This week</h1>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn" onClick={onOpenNew}>+ Thêm</button>
+          <button className="btn" onClick={() => setEditing(null)}>+ Thêm</button>
           <button
             className={`btn ${!planned && isSunday ? 'glow' : 'primary'}`}
             onClick={onOpenPlanning}>
@@ -77,12 +91,15 @@ export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
       </header>
 
       <div style={{ marginTop: 16 }}>
-        <WeekBoard days={week} onToggle={toggle} />
+        <WeekBoard days={week} onToggle={toggle}
+                   onOpen={openEditor} onQuickAdd={quickAdd} />
       </div>
 
       {overdue.length > 0 && (
         <Section title="Quá hạn" count={overdue.length}>
-          {overdue.map((s) => <StuffCard key={s.id} item={s} overdue onToggle={toggle} />)}
+          {overdue.map((s) => (
+            <StuffCard key={s.id} item={s} overdue onToggle={toggle} onOpen={openEditor} />
+          ))}
         </Section>
       )}
 
@@ -95,13 +112,24 @@ export default function Dashboard({ onOpenPlanning, onOpenNew, onSignOut }) {
                      : ''}>
           {groups[key].length === 0
             ? <div className="empty">Chưa có gì.</div>
-            : groups[key].map((s) => <StuffCard key={s.id} item={s} onToggle={toggle} />)}
+            : groups[key].map((s) => (
+              <StuffCard key={s.id} item={s} onToggle={toggle} onOpen={openEditor} />
+            ))}
         </Section>
       ))}
 
       <Section title="Topics / Goals to brainstorm" count={topics.length}>
         <Topics topics={topics} stuff={stuff} onChanged={load} />
       </Section>
+
+      {editing !== undefined && (
+        <div className="modal-bg" onClick={closeEditor}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <StuffForm item={editing} topics={topics}
+                       onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }
