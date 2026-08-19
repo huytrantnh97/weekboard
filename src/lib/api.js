@@ -32,27 +32,41 @@ export const setDone = (id, done) =>
 export const moveToDay = (id, date, position) =>
   updateStuff(id, { planned_date: date ? iso(date) : null, position })
 
+/** Đúng các cột có thật trong bảng stuff. Mọi field khác của form bị loại bỏ. */
+const STUFF_COLUMNS = [
+  'topic_id', 'type', 'title', 'note', 'status',
+  'date_mode', 'start_date', 'end_date', 'start_time', 'planned_date', 'position',
+  'freq', 'by_weekday', 'by_monthday', 'repeat_from', 'repeat_until',
+]
+
 /**
  * Chuẩn hoá dữ liệu form → đúng ràng buộc của DB.
- * mode: 'none' | 'single' | 'range' | 'month'
+ * date_mode: 'none' | 'single' | 'range' | 'month'
  */
 export function normalise(f) {
   const out = { ...f }
+
   if (f.type === 'habit') {
     out.date_mode = 'none'
     out.start_date = out.end_date = null
-    out.repeat_from ??= iso(new Date())
+    out.repeat_from ||= iso(new Date())
   } else if (f.date_mode === 'single') {
     out.end_date = f.start_date
-  } else if (f.date_mode === 'month') {
+  } else if (f.date_mode === 'month' && f.month) {
     const [y, m] = f.month.split('-').map(Number)   // input type="month" → '2026-09'
     out.start_date = iso(new Date(y, m - 1, 1))
     out.end_date = iso(new Date(y, m, 0))
-    delete out.month
   } else if (f.date_mode === 'none') {
     out.start_date = out.end_date = null
   }
-  return out
+
+  // Chỉ giữ lại các cột có thật, và bỏ chuỗi rỗng (Postgres cần null)
+  const clean = {}
+  for (const k of STUFF_COLUMNS) {
+    if (out[k] === undefined) continue
+    clean[k] = out[k] === '' ? null : out[k]
+  }
+  return clean
 }
 
 /* ----------------------------- TOPICS ---------------------------- */
