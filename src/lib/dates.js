@@ -42,7 +42,24 @@ export function anchorDate(item, h) {
 
 export const BUCKETS = ['this_week', 'next_week', 'in_a_month', 'later', 'no_date']
 
+/**
+ * Task (không tính event/habit) đặt đúng ngày hôm nay mà chưa đánh dấu xong.
+ * Coi như hết hạn ngay trong hôm nay — không đợi sang ngày mai mới thành
+ * quá hạn. Bị đẩy khỏi lưới This week xuống Next week, và ở trang Planning
+ * được coi như chưa có ngày cụ thể (kéo thả tự do) để xếp lại ngày mới.
+ *
+ * Tự động hết hiệu lực ngay khi: được đánh dấu xong, hoặc được xếp một
+ * planned_date khác hôm nay (tức đã "lên lịch lại" xong).
+ */
+export function isStaleToday(item, h) {
+  if (item.type !== 'task' || item.status !== 'open') return false
+  if (item.date_mode !== 'single') return false
+  const anchor = item.planned_date ?? item.start_date
+  return anchor === iso(h.today)
+}
+
 export function bucketOf(item, h) {
+  if (isStaleToday(item, h)) return 'next_week'
   const a = anchorDate(item, h)
   if (!a) return 'no_date'
   if (a <= h.thisEnd) return 'this_week'
