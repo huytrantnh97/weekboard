@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/api'
 import Dashboard from './pages/Dashboard'
 import Planning from './pages/Planning'
+import Done from './pages/Done'
+import PullToRefresh from './components/PullToRefresh'
 
 // Supabase yêu cầu email. Nếu bạn gõ tên đăng nhập không có "@",
 // app tự ghép thêm domain này để thành email hợp lệ.
@@ -19,14 +21,31 @@ export default function App() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
+  // Kéo xuống để làm mới: remount trang hiện tại → chạy lại toàn bộ tải dữ liệu.
+  const refresh = useCallback(async () => {
+    setTick((t) => t + 1)
+    await new Promise((r) => setTimeout(r, 400))
+  }, [])
+
   if (session === undefined) return <div className="app" style={{ paddingTop: 80 }}>Đang mở…</div>
   if (!session) return <SignIn />
 
-  return page === 'home'
-    ? <Dashboard key={tick}
-                 onOpenPlanning={() => setPage('plan')}
-                 onSignOut={() => supabase.auth.signOut()} />
-    : <Planning onDone={() => { setPage('home'); setTick((t) => t + 1) }} />
+  return (
+    <PullToRefresh onRefresh={refresh}>
+      {page === 'home' && (
+        <Dashboard key={tick}
+                   onOpenPlanning={() => setPage('plan')}
+                   onOpenDone={() => setPage('done')}
+                   onSignOut={() => supabase.auth.signOut()} />
+      )}
+      {page === 'plan' && (
+        <Planning key={tick} onDone={() => { setPage('home'); setTick((t) => t + 1) }} />
+      )}
+      {page === 'done' && (
+        <Done key={tick} onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
+      )}
+    </PullToRefresh>
+  )
 }
 
 function SignIn() {

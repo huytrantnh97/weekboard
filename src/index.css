@@ -12,6 +12,7 @@
   --surface:    #FFFFFF;
   --rule:       #DCE2DE;
   --rule-soft:  #E9EDEA;
+  --rule-strong: #C3CDC7;
 
   --pine:       #1F4D3D;
   --pine-soft:  #E3EDE7;
@@ -35,6 +36,7 @@
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }
+html, body { overscroll-behavior-y: contain; }   /* tránh chồng với pull-to-refresh của app */
 
 body {
   margin: 0;
@@ -76,8 +78,9 @@ h2 { font-size: 15px; }
 }
 
 /* ------------------------------------------------------- SIGNATURE: rail
-   Dải 7 ngày. Ngày đã qua co lại thành vạch mảnh; hôm nay có gạch pine.  */
-.rail { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+   Dải 7 ngày. Đường kẻ đậm hơn để phân tách rõ; hôm nay đổi hẳn nền ô. */
+.rail { display: grid; gap: 2px; background: var(--rule-strong);
+        border: 1px solid var(--rule-strong);
         border-radius: var(--r-md); overflow: hidden; }
 
 /* màn hình ngang / rộng → bảng 7 cột */
@@ -94,7 +97,7 @@ h2 { font-size: 15px; }
   min-width: 0;
 }
 .day.past    { background: #F6F8F7; }
-.day.today   { box-shadow: inset 0 3px 0 var(--pine); }
+.day.today   { background: var(--pine-soft); box-shadow: inset 0 3px 0 var(--pine); }
 .day.collapsed { padding: var(--sp-2) var(--sp-1); align-items: center; }
 .day.collapsed .day-items { display: none; }
 
@@ -103,8 +106,8 @@ h2 { font-size: 15px; }
   font-family: var(--font-mono); font-size: 12px; color: var(--ink-2);
 }
 .day-head .dow { font-weight: 600; color: var(--ink); letter-spacing: .04em; }
+.day.today .day-head { color: var(--pine); }
 .day.today .day-head .dow { color: var(--pine); }
-.day-items { display: flex; flex-direction: column; gap: var(--sp-2); }
 
 /* --------------------------------------------------------------- cards */
 .card {
@@ -261,3 +264,41 @@ h2 { font-size: 15px; }
   position: absolute; right: 8px; top: 50%;
   width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0;
 }
+
+
+/* ------------------------------------------------------------ topic groups
+   Gom stuff theo Topic trong mỗi ô ngày / mỗi mục. Nhóm không topic
+   không có nhãn — chỉ topic mới hiện tiêu đề nhỏ. */
+.day-items, .stuff-list { display: flex; flex-direction: column; gap: var(--sp-3); }
+.topic-group { display: flex; flex-direction: column; gap: var(--sp-2); }
+.topic-group-label {
+  font-family: var(--font-mono); font-size: 10px; letter-spacing: .07em;
+  text-transform: uppercase; color: var(--pine);
+  margin: 0 0 -2px 2px;
+}
+
+/* ---------------------------------------------------------------- link */
+.card-link {
+  flex: 0 0 auto; align-self: flex-start;
+  width: 22px; height: 22px; margin-top: 1px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; color: var(--ink-3); text-decoration: none;
+  border-radius: 5px;
+}
+.card-link:hover { color: var(--pine); background: var(--pine-soft); }
+
+/* --------------------------------------------------------- archived topic */
+.archived-topic {
+  display: flex; align-items: center; gap: var(--sp-2);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-sm); padding: 8px 12px; font-size: 14px;
+}
+
+/* --------------------------------------------------------- pull to refresh */
+.ptr-indicator {
+  overflow: hidden; display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-3);
+  transition: height .15s ease, opacity .15s ease;
+}
+.ptr-spin { display: inline-block; animation: ptr-rotate .7s linear infinite; }
+@keyframes ptr-rotate { to { transform: rotate(360deg); } }
