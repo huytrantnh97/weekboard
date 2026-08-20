@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { isSameDay, isBefore, startOfDay, getISODay, format } from 'date-fns'
 import { DAY_LABEL } from '../lib/dates'
 import StuffCard from './StuffCard'
+import GroupedItems from './GroupedItems'
 
 /**
  * Bảng 7 ngày.
@@ -10,7 +11,7 @@ import StuffCard from './StuffCard'
  * - Mặc định thu gọn các ngày đã trôi qua, bấm để mở lại.
  */
 export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
-                                   onQuickAdd, renderDay }) {
+                                   onQuickAdd, topicsById = {}, renderDay }) {
   const [showPast, setShowPast] = useState(false)
   const [addDay, setAddDay] = useState(null)
   const [draft, setDraft] = useState('')
@@ -58,12 +59,9 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
                 renderDay
                   ? renderDay(d)
                   : (
-                    <div className="day-items">
-                      {d.items.map((it) => (
-                        <StuffCard key={it.key} item={it} hideDate
-                                   onToggle={onToggle} onOpen={onOpen} />
-                      ))}
-                    </div>
+                    <GroupedItems items={d.items} topicsById={topicsById}
+                                  onToggle={onToggle} onOpen={onOpen}
+                                  hideDate className="day-items" />
                   )
               )}
 

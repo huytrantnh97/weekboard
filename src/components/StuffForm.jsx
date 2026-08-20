@@ -4,7 +4,7 @@ import { DAY_LABEL } from '../lib/dates'
 import { DateField, MonthField } from './DateField'
 
 const empty = {
-  type: 'task', title: '', note: '', topic_id: null,
+  type: 'task', title: '', note: '', link: '', topic_id: null,
   date_mode: 'none', start_date: '', end_date: '', month: '', start_time: '',
   freq: 'weekly', by_weekday: [], by_monthday: [], repeat_from: '', repeat_until: '',
 }
@@ -17,6 +17,7 @@ function fromItem(it) {
     type: it.type,
     title: it.title ?? '',
     note: it.note ?? '',
+    link: it.link ?? '',
     topic_id: it.topic_id ?? null,
     date_mode: it.date_mode ?? 'none',
     start_date: it.start_date ?? '',
@@ -177,6 +178,17 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
 
       <textarea className="field" rows={2} placeholder="Ghi chú…"
                 value={f.note} onChange={(e) => set('note', e.target.value)} />
+
+      <Row label="Link">
+        <span style={{ display: 'flex', gap: 6, flex: 1, minWidth: 200 }}>
+          <input type="url" className="field" placeholder="https://…"
+                 value={f.link} onChange={(e) => set('link', e.target.value)} />
+          {f.link && (
+            <a className="btn ghost" href={f.link} target="_blank" rel="noopener noreferrer"
+               title="Mở link" aria-label="Mở link" style={{ flex: '0 0 auto' }}>↗</a>
+          )}
+        </span>
+      </Row>
 
       <Row label="Chủ đề">
         <select className="field" value={f.topic_id ?? ''}

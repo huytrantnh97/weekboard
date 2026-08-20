@@ -45,6 +45,13 @@ export default function StuffCard({ item, onToggle, onOpen, overdue = false,
           {meta && <span className="card-meta">{meta}</span>}
         </div>
       )}
+
+      {item.link && (
+        <a className="card-link" href={item.link} target="_blank" rel="noopener noreferrer"
+           title={item.link} aria-label="Mở link"
+           onPointerDown={(e) => e.stopPropagation()}
+           onClick={(e) => e.stopPropagation()}>↗</a>
+      )}
     </div>
   )
 }
