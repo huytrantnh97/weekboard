@@ -1,14 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from './lib/api'
+import { toEmail } from './lib/identity'
 import Dashboard from './pages/Dashboard'
 import Planning from './pages/Planning'
 import Done from './pages/Done'
 import PullToRefresh from './components/PullToRefresh'
-
-// Supabase yêu cầu email. Nếu bạn gõ tên đăng nhập không có "@",
-// app tự ghép thêm domain này để thành email hợp lệ.
-const DOMAIN = import.meta.env.VITE_LOGIN_DOMAIN || 'weekboard.local'
-export const toEmail = (id) => (id.includes('@') ? id : `${id.trim()}@${DOMAIN}`)
 
 export default function App() {
   const [session, setSession] = useState(undefined)
@@ -33,7 +29,7 @@ export default function App() {
   return (
     <PullToRefresh onRefresh={refresh}>
       {page === 'home' && (
-        <Dashboard key={tick}
+        <Dashboard key={tick} meId={session.user.id}
                    onOpenPlanning={() => setPage('plan')}
                    onOpenDone={() => setPage('done')}
                    onSignOut={() => supabase.auth.signOut()} />
@@ -42,7 +38,8 @@ export default function App() {
         <Planning key={tick} onDone={() => { setPage('home'); setTick((t) => t + 1) }} />
       )}
       {page === 'done' && (
-        <Done key={tick} onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
+        <Done key={tick} meId={session.user.id}
+              onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
       )}
     </PullToRefresh>
   )

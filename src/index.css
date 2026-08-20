@@ -302,3 +302,18 @@ h2 { font-size: 15px; }
 }
 .ptr-spin { display: inline-block; animation: ptr-rotate .7s linear infinite; }
 @keyframes ptr-rotate { to { transform: rotate(360deg); } }
+
+/* --------------------------------------------------------------- icon btn */
+.btn.icon-btn { padding: 8px; display: inline-flex; align-items: center; justify-content: center; }
+
+/* -------------------------------------------------------------- share-chip */
+.share-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--pine-soft); color: var(--pine);
+  border-radius: 999px; padding: 3px 6px 3px 10px; font-size: 12px;
+}
+.share-chip button {
+  font: inherit; background: none; border: 0; cursor: pointer;
+  color: inherit; opacity: .7; padding: 0 2px; line-height: 1;
+}
+.share-chip button:hover { opacity: 1; }
