@@ -6,7 +6,7 @@ import {
 } from '../lib/api'
 import { horizons, buildWeek, bucketOf, isOverdue, sortStuff } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
-import StuffCard from '../components/StuffCard'
+import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
 import StuffForm from '../components/StuffForm'
 
@@ -17,7 +17,7 @@ const TITLES = {
   no_date:    'No date',
 }
 
-export default function Dashboard({ onOpenPlanning, onSignOut }) {
+export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
@@ -36,6 +36,7 @@ export default function Dashboard({ onOpenPlanning, onSignOut }) {
   useEffect(() => { load() }, [])
 
   const week = useMemo(() => buildWeek(h.thisStart, stuff, logs), [stuff, logs, h])
+  const topicsById = useMemo(() => Object.fromEntries(topics.map((t) => [t.id, t])), [topics])
 
   // Các nhóm còn lại: bỏ habit (habit chỉ hiện trong lưới tuần) và bỏ việc đã xong
   const groups = useMemo(() => {
@@ -86,6 +87,9 @@ export default function Dashboard({ onOpenPlanning, onSignOut }) {
             onClick={onOpenPlanning}>
             Lập kế hoạch tuần sau
           </button>
+          {onOpenDone && (
+            <button className="btn ghost" onClick={onOpenDone}>Đã xong</button>
+          )}
           {onSignOut && (
             <button className="btn ghost" onClick={onSignOut} title="Đăng xuất">Thoát</button>
           )}
@@ -93,15 +97,14 @@ export default function Dashboard({ onOpenPlanning, onSignOut }) {
       </header>
 
       <div style={{ marginTop: 16 }}>
-        <WeekBoard days={week} onToggle={toggle}
+        <WeekBoard days={week} onToggle={toggle} topicsById={topicsById}
                    onOpen={openEditor} onQuickAdd={quickAdd} />
       </div>
 
       {overdue.length > 0 && (
         <Section title="Quá hạn" count={overdue.length}>
-          {overdue.map((s) => (
-            <StuffCard key={s.id} item={s} overdue onToggle={toggle} onOpen={openEditor} />
-          ))}
+          <GroupedItems items={overdue} topicsById={topicsById} overdue
+                        onToggle={toggle} onOpen={openEditor} />
         </Section>
       )}
 
@@ -114,9 +117,8 @@ export default function Dashboard({ onOpenPlanning, onSignOut }) {
                      : ''}>
           {groups[key].length === 0
             ? <div className="empty">Chưa có gì.</div>
-            : groups[key].map((s) => (
-              <StuffCard key={s.id} item={s} onToggle={toggle} onOpen={openEditor} />
-            ))}
+            : <GroupedItems items={groups[key]} topicsById={topicsById}
+                            onToggle={toggle} onOpen={openEditor} />}
         </Section>
       ))}
 
