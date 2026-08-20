@@ -101,6 +101,19 @@ export const listDoneStuff = () =>
   supabase.from('stuff').select('*').eq('status', 'done')
     .order('completed_at', { ascending: false }).then(ok)
 
+/* -------------------------------- CHIA SẺ -------------------------------- */
+
+export const listShares = (stuffId) =>
+  supabase.from('stuff_shares').select('*').eq('stuff_id', stuffId).then(ok)
+
+/** email đã được chuẩn hoá (toEmail) từ phía component gọi hàm này. */
+export const shareStuff = (stuffId, email) =>
+  supabase.rpc('share_stuff', { p_stuff_id: stuffId, p_email: email }).then(ok)
+
+export const unshareStuff = (stuffId, email) =>
+  supabase.from('stuff_shares').delete()
+    .eq('stuff_id', stuffId).eq('shared_with_email', email).then(ok)
+
 /* --------------------------- HABIT LOGS -------------------------- */
 
 export const listHabitLogs = (from, to) =>
