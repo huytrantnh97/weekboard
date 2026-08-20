@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createStuff, updateStuff, deleteStuff, normalise } from '../lib/api'
 import { DAY_LABEL } from '../lib/dates'
 import { DateField, MonthField } from './DateField'
+import ShareBox from './ShareBox'
 
 const empty = {
   type: 'task', title: '', note: '', link: '', topic_id: null,
@@ -37,7 +38,7 @@ function fromItem(it) {
  * item = null  → thêm mới
  * item = stuff → sửa, hiện thêm nút Xoá
  */
-export default function StuffForm({ item = null, topics = [], defaultDate = null,
+export default function StuffForm({ item = null, topics = [], defaultDate = null, meId = null,
                                     onSaved, onCancel, onDeleted }) {
   const [f, setF] = useState(() => {
     const base = fromItem(item)
@@ -47,6 +48,9 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const editing = !!item
+  // Người mới (chưa lưu) luôn là chủ. Đang sửa: chỉ chủ mới thấy Xoá / Chia sẻ —
+  // người được người khác chia sẻ cho chỉ xem/sửa nội dung, không quản lý quyền.
+  const isOwner = !editing || item.user_id === meId
 
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
   const toggleIn = (k, v) =>
@@ -198,6 +202,16 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
         </select>
       </Row>
 
+      {editing && !isOwner && (
+        <p className="card-meta">Việc này được người khác chia sẻ với bạn.</p>
+      )}
+
+      {editing && isOwner && (
+        <div style={{ borderTop: '1px solid var(--rule-soft)', paddingTop: 12 }}>
+          <ShareBox stuffId={item.id} />
+        </div>
+      )}
+
       {err && <p style={{ color: 'var(--danger)', fontSize: 13, margin: 0 }}>{err}</p>}
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -205,7 +219,7 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
           {busy ? 'Đang lưu…' : 'Lưu'}
         </button>
         <button className="btn ghost" type="button" onClick={onCancel}>Huỷ</button>
-        {editing && (
+        {editing && isOwner && (
           <button className="btn ghost" type="button" onClick={remove} disabled={busy}
                   style={{ marginLeft: 'auto', color: 'var(--danger)' }}>Xoá</button>
         )}
