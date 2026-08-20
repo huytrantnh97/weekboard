@@ -4,7 +4,7 @@ import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
   createStuff,
 } from '../lib/api'
-import { horizons, buildWeek, bucketOf, isOverdue, sortStuff, isStaleToday } from '../lib/dates'
+import { horizons, buildWeek, bucketOf, isOverdue, sortStuff } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
@@ -17,7 +17,7 @@ const TITLES = {
   no_date:    'No date',
 }
 
-export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
+export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
@@ -35,10 +35,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
   }
   useEffect(() => { load() }, [])
 
-  // Task hôm nay chưa xong bị đẩy xuống Next week — không hiện trong ô hôm nay nữa
-  const week = useMemo(
-    () => buildWeek(h.thisStart, stuff.filter((s) => !isStaleToday(s, h)), logs),
-    [stuff, logs, h])
+  const week = useMemo(() => buildWeek(h.thisStart, stuff, logs), [stuff, logs, h])
   const topicsById = useMemo(() => Object.fromEntries(topics.map((t) => [t.id, t])), [topics])
 
   // Các nhóm còn lại: bỏ habit (habit chỉ hiện trong lưới tuần) và bỏ việc đã xong
@@ -84,17 +81,20 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
           <h1>This week</h1>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn" onClick={() => setEditing(null)}>+ Thêm</button>
+          <button className="btn" onClick={() => setEditing(null)}>+ Add</button>
           <button
             className={`btn ${!planned && isSunday ? 'glow' : 'primary'}`}
             onClick={onOpenPlanning}>
-            Lập kế hoạch tuần sau
+            Plan for next week
           </button>
           {onOpenDone && (
-            <button className="btn ghost" onClick={onOpenDone}>Đã xong</button>
+            <button className="btn ghost" onClick={onOpenDone}>Done</button>
           )}
           {onSignOut && (
-            <button className="btn ghost" onClick={onSignOut} title="Đăng xuất">Thoát</button>
+            <button className="btn ghost icon-btn" title="Đăng xuất" aria-label="Đăng xuất"
+                    onClick={() => { if (confirm('Đăng xuất khỏi WeekBoard?')) onSignOut() }}>
+              <LogoutIcon />
+            </button>
           )}
         </div>
       </header>
@@ -132,12 +132,23 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
       {editing !== undefined && (
         <div className="modal-bg" onClick={closeEditor}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <StuffForm item={editing} topics={topics}
+            <StuffForm item={editing} topics={topics} meId={meId}
                        onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
   )
 }
 

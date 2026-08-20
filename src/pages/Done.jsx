@@ -11,7 +11,7 @@ import StuffForm from '../components/StuffForm'
  *  - topic/goal đã lưu trữ (coi như đã xong / gác lại)
  * Cả hai đều khôi phục được: bỏ tick lại, hoặc "Khôi phục" topic.
  */
-export default function Done({ onBack }) {
+export default function Done({ onBack, meId }) {
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])       // topic đang mở, cho dropdown trong form sửa
   const [archived, setArchived] = useState([])
@@ -45,7 +45,7 @@ export default function Done({ onBack }) {
   return (
     <div className="app">
       <header style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <h1>Đã xong</h1>
+        <h1>Done</h1>
         <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onBack}>
           Quay lại
         </button>
@@ -88,7 +88,7 @@ export default function Done({ onBack }) {
       {editing !== undefined && (
         <div className="modal-bg" onClick={closeEditor}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <StuffForm item={editing} topics={topics}
+            <StuffForm item={editing} topics={topics} meId={meId}
                        onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
           </div>
         </div>
