@@ -4,7 +4,7 @@ import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
   createStuff,
 } from '../lib/api'
-import { horizons, buildWeek, bucketOf, isOverdue, sortStuff } from '../lib/dates'
+import { horizons, buildWeek, bucketOf, isOverdue, sortStuff, isStaleToday } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
@@ -35,7 +35,10 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut }) {
   }
   useEffect(() => { load() }, [])
 
-  const week = useMemo(() => buildWeek(h.thisStart, stuff, logs), [stuff, logs, h])
+  // Task hôm nay chưa xong bị đẩy xuống Next week — không hiện trong ô hôm nay nữa
+  const week = useMemo(
+    () => buildWeek(h.thisStart, stuff.filter((s) => !isStaleToday(s, h)), logs),
+    [stuff, logs, h])
   const topicsById = useMemo(() => Object.fromEntries(topics.map((t) => [t.id, t])), [topics])
 
   // Các nhóm còn lại: bỏ habit (habit chỉ hiện trong lưới tuần) và bỏ việc đã xong

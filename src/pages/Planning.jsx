@@ -3,7 +3,7 @@ import { DndContext, PointerSensor, useSensor, useSensors,
          useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core'
 import { format, isWithinInterval } from 'date-fns'
 import { listStuff, listHabitLogs, moveToDay, markWeekPlanned } from '../lib/api'
-import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
+import { horizons, buildWeek, daysOf, iso, parse, dateText, isStaleToday } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
 
@@ -22,9 +22,15 @@ export default function Planning({ onDone }) {
 
   const week = useMemo(() => buildWeek(h.nextStart, stuff, logs), [stuff, logs, h])
 
-  /** Hàng chờ: việc chưa có ngày cụ thể nhưng liên quan tới tuần sau. */
+  /**
+   * Hàng chờ: việc chưa có ngày cụ thể nhưng liên quan tới tuần sau, cộng thêm
+   * task hôm nay chưa xong (isStaleToday) — dù đang có planned_date = hôm nay,
+   * vẫn coi như chưa có ngày để bắt buộc xếp lại.
+   */
   const pool = useMemo(() => stuff.filter((s) => {
-    if (s.type === 'habit' || s.status === 'done' || s.planned_date) return false
+    if (s.type === 'habit' || s.status === 'done') return false
+    if (isStaleToday(s, h)) return true
+    if (s.planned_date) return false
     if (s.date_mode === 'none') return true
     // range / month có giao với tuần sau
     return parse(s.start_date) <= h.nextEnd && parse(s.end_date) >= h.nextStart
@@ -41,9 +47,10 @@ export default function Planning({ onDone }) {
     if (!item) return
 
     const target = over.id === 'pool' ? null : parse(over.id)
+    const stale = isStaleToday(item, h)   // task hôm nay chưa xong — coi như tự do, bỏ qua mọi ràng buộc ngày cũ
 
     // Chặn kéo ra ngoài khoảng cho phép
-    if (target && item.date_mode !== 'none') {
+    if (!stale && target && item.date_mode !== 'none') {
       const inRange = isWithinInterval(target,
         { start: parse(item.start_date), end: parse(item.end_date) })
       if (!inRange) {
@@ -51,7 +58,7 @@ export default function Planning({ onDone }) {
         return
       }
     }
-    if (item.date_mode === 'single') return    // ngày cố định, không kéo được
+    if (!stale && item.date_mode === 'single') return    // ngày cố định thật, không kéo được
 
     // cập nhật lạc quan rồi ghi DB
     setStuff((prev) => prev.map((s) =>
