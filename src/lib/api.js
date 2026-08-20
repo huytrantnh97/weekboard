@@ -34,7 +34,7 @@ export const moveToDay = (id, date, position) =>
 
 /** Đúng các cột có thật trong bảng stuff. Mọi field khác của form bị loại bỏ. */
 const STUFF_COLUMNS = [
-  'topic_id', 'type', 'title', 'note', 'status',
+  'topic_id', 'type', 'title', 'note', 'link', 'status',
   'date_mode', 'start_date', 'end_date', 'start_time', 'planned_date', 'position',
   'freq', 'by_weekday', 'by_monthday', 'repeat_from', 'repeat_until',
 ]
@@ -88,6 +88,18 @@ export const archiveTopic = (id) =>
 /** Xoá hẳn. Stuff thuộc topic không mất — topic_id chỉ bị gỡ về null. */
 export const deleteTopic = (id) =>
   supabase.from('topics').delete().eq('id', id).then(ok)
+
+export const listArchivedTopics = () =>
+  supabase.from('topics').select('*').eq('status', 'archived')
+    .order('created_at', { ascending: false }).then(ok)
+
+export const restoreTopic = (id) => updateTopic(id, { status: 'open' })
+
+/* ------------------------------ ĐÃ XONG (stuff) ------------------------- */
+
+export const listDoneStuff = () =>
+  supabase.from('stuff').select('*').eq('status', 'done')
+    .order('completed_at', { ascending: false }).then(ok)
 
 /* --------------------------- HABIT LOGS -------------------------- */
 

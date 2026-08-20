@@ -146,3 +146,25 @@ export function sortStuff(list, h) {
     return (a.title ?? '').localeCompare(b.title ?? '', 'vi')
   })
 }
+
+/**
+ * Gom danh sách theo topic, giữ nguyên thứ tự thời gian đã sắp trước đó.
+ * Thứ tự nhóm = thứ tự xuất hiện đầu tiên của topic trong danh sách
+ * (tức nhóm nào có việc gần nhất thì lên trước).
+ * Việc không có topic được gom vào một nhóm không tiêu đề, ở đúng vị trí
+ * xuất hiện đầu tiên của nó (thường là đầu danh sách nếu sortStuff đã chạy).
+ */
+export function groupByTopic(items, topicsById = {}) {
+  const order = []
+  const map = new Map()
+  for (const it of items) {
+    const key = it.topic_id || '_none'
+    if (!map.has(key)) { map.set(key, []); order.push(key) }
+    map.get(key).push(it)
+  }
+  return order.map((key) => ({
+    id: key === '_none' ? null : key,
+    title: key === '_none' ? null : (topicsById[key]?.title ?? null),
+    items: map.get(key),
+  }))
+}
