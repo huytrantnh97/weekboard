@@ -114,6 +114,39 @@ export const unshareStuff = (stuffId, email) =>
   supabase.from('stuff_shares').delete()
     .eq('stuff_id', stuffId).eq('shared_with_email', email).then(ok)
 
+/* ------------------------------- REFLECT --------------------------------- */
+
+/** null = chưa có báo cáo cho tuần này. */
+export const getReflection = (weekStartIso) =>
+  supabase.from('reflections').select('*')
+    .eq('week_start', weekStartIso).maybeSingle().then(ok)
+
+/**
+ * Gọi Edge Function để tạo báo cáo ngay cho CHÍNH người đang đăng nhập
+ * (không đợi tới 20h Chủ nhật). Ném lỗi nếu thiếu cấu hình/API key.
+ */
+export const triggerReflect = async () => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Chưa đăng nhập')
+
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/weekly-reflect`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: '{}',
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    let msg = body
+    try { msg = JSON.parse(body).error ?? body } catch { /* giữ nguyên text */ }
+    throw new Error(msg)
+  }
+  return res.json()
+}
+
 /* --------------------------- HABIT LOGS -------------------------- */
 
 export const listHabitLogs = (from, to) =>
