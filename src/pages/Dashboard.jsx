@@ -9,6 +9,7 @@ import WeekBoard from '../components/WeekBoard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
 import StuffForm from '../components/StuffForm'
+import ReflectModal from '../components/ReflectModal'
 
 const TITLES = {
   next_week:  'Next week',
@@ -19,6 +20,7 @@ const TITLES = {
 
 export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
+  const [reflectOpen, setReflectOpen] = useState(false)
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
   const [logs, setLogs] = useState([])
@@ -78,7 +80,13 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId 
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div>
           <div className="eyebrow">Tuần {format(h.thisStart, 'd/M')} – {format(h.thisEnd, 'd/M/yyyy')}</div>
-          <h1>This week</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <h1>This week</h1>
+            <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần"
+                    aria-label="Xem báo cáo Reflect" onClick={() => setReflectOpen(true)}>
+              <ReflectIcon />
+            </button>
+          </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           <button className="btn" onClick={() => setEditing(null)}>+ Add</button>
@@ -137,7 +145,19 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId 
           </div>
         </div>
       )}
+
+      {reflectOpen && (
+        <ReflectModal weekStart={h.thisStart} onClose={() => setReflectOpen(false)} />
+      )}
     </div>
+  )
+}
+
+function ReflectIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+      <path d="m12 2 1.8 5.6a2 2 0 0 0 1.3 1.3L20.7 10.7 15.1 12.5a2 2 0 0 0-1.3 1.3L12 19.4l-1.8-5.6a2 2 0 0 0-1.3-1.3L3.3 10.7l5.6-1.8a2 2 0 0 0 1.3-1.3Z" />
+    </svg>
   )
 }
 
