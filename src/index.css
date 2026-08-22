@@ -317,3 +317,15 @@ h2 { font-size: 15px; }
   color: inherit; opacity: .7; padding: 0 2px; line-height: 1;
 }
 .share-chip button:hover { opacity: 1; }
+
+/* --------------------------------------------------------- reflect / icon sm */
+.btn.icon-btn.sm { padding: 5px; color: var(--ink-3); }
+.btn.icon-btn.sm:hover { color: var(--gold); border-color: var(--gold); }
+
+.reflect-body h3, .reflect-body h4 {
+  margin: 14px 0 6px; font-size: 15px;
+}
+.reflect-body h3:first-child, .reflect-body h4:first-child { margin-top: 0; }
+.reflect-body p { margin: 0 0 10px; line-height: 1.6; font-size: 14px; }
+.reflect-body ul { margin: 0 0 10px; padding-left: 20px; }
+.reflect-body li { margin-bottom: 5px; font-size: 14px; line-height: 1.5; }
