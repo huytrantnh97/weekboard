@@ -114,7 +114,46 @@ export const unshareStuff = (stuffId, email) =>
   supabase.from('stuff_shares').delete()
     .eq('stuff_id', stuffId).eq('shared_with_email', email).then(ok)
 
+/* -------------------------------- SEARCH --------------------------------- */
+
+/**
+ * PostgREST dùng dấu phẩy và ngoặc làm cú pháp trong .or(), nên phải loại
+ * chúng khỏi từ khoá người dùng gõ, nếu không câu truy vấn sẽ vỡ.
+ */
+const safeTerm = (q) => q.trim().replace(/[,()*\\]/g, ' ').trim()
+
+/** Tìm trên mọi loại dữ liệu cùng lúc. Trả về object đã gom nhóm. */
+export async function searchAll(query) {
+  const q = safeTerm(query)
+  if (q.length < 2) return { stuff: [], journal: [], resources: [], reflections: [], topics: [] }
+  const like = `%${q}%`
+
+  const [stuff, journal, resources, reflections, topics] = await Promise.all([
+    supabase.from('stuff').select('*')
+      .or(`title.ilike.${like},note.ilike.${like},link.ilike.${like}`)
+      .limit(40).then(ok),
+    supabase.from('journal_entries').select('*')
+      .ilike('content', like).order('entry_date', { ascending: false }).limit(20).then(ok),
+    supabase.from('resources').select('*')
+      .or(`title.ilike.${like},note.ilike.${like},url.ilike.${like}`)
+      .limit(20).then(ok),
+    supabase.from('reflections').select('*')
+      .ilike('content', like).order('week_start', { ascending: false }).limit(10).then(ok),
+    supabase.from('topics').select('*')
+      .or(`title.ilike.${like},note.ilike.${like}`).limit(10).then(ok),
+  ])
+  return { stuff, journal, resources, reflections, topics }
+}
+
 /* ------------------------------- REFLECT --------------------------------- */
+
+export const listReflections = () =>
+  supabase.from('reflections').select('*')
+    .order('week_start', { ascending: true }).then(ok)
+
+/** Xoá theo danh sách week_start ('yyyy-MM-dd'). */
+export const deleteReflections = (weekStarts) =>
+  supabase.from('reflections').delete().in('week_start', weekStarts).then(ok)
 
 /** null = chưa có báo cáo cho tuần này. */
 export const getReflection = (weekStartIso) =>
@@ -155,6 +194,15 @@ export const saveSettings = (patch) =>
 export const listJournal = (fromIso, toIso) =>
   supabase.from('journal_entries').select('*')
     .gte('entry_date', fromIso).lte('entry_date', toIso).then(ok)
+
+/** Xoá theo danh sách entry_date ('yyyy-MM-dd'). */
+export const deleteJournalEntries = (dates) =>
+  supabase.from('journal_entries').delete().in('entry_date', dates).then(ok)
+
+/** Chỉ lấy các ngày ĐÃ QUA (không gồm hôm nay). */
+export const listJournalBefore = (beforeIso) =>
+  supabase.from('journal_entries').select('*')
+    .lt('entry_date', beforeIso).order('entry_date', { ascending: true }).then(ok)
 
 export const listAllJournalUpTo = (toIso) =>
   supabase.from('journal_entries').select('*')
