@@ -329,3 +329,14 @@ h2 { font-size: 15px; }
 .reflect-body p { margin: 0 0 10px; line-height: 1.6; font-size: 14px; }
 .reflect-body ul { margin: 0 0 10px; padding-left: 20px; }
 .reflect-body li { margin-bottom: 5px; font-size: 14px; line-height: 1.5; }
+
+/* ------------------------------------------------------------- journal dot */
+.journal-dot {
+  width: 16px; height: 16px; padding: 0; flex: 0 0 auto;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: none; border: 0; cursor: pointer; color: var(--rule-strong);
+}
+.journal-dot svg { fill: none; stroke: currentColor; stroke-width: 1.3; }
+.journal-dot[data-has='true'] { color: var(--gold); }
+.journal-dot[data-has='true'] svg { fill: currentColor; stroke: none; }
+.journal-dot:hover { color: var(--pine); }
