@@ -359,3 +359,21 @@ h2 { font-size: 15px; }
 
 /* ------------------------------------------------------------- tg settings */
 .tg-check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }
+
+/* ---------------------------------------------------------------- search */
+.search-modal { max-width: 560px; display: flex; flex-direction: column; gap: 12px; }
+.search-results { max-height: 60vh; overflow: auto; display: grid; gap: 14px; }
+.search-group { display: grid; gap: 4px; }
+.search-item {
+  font: inherit; text-align: left; display: flex; flex-direction: column; gap: 2px;
+  background: none; border: 0; border-radius: var(--r-sm);
+  padding: 7px 9px; cursor: pointer; text-decoration: none; color: inherit;
+}
+.search-item:hover { background: var(--paper); }
+.search-item.static { cursor: default; }
+.search-item.static:hover { background: none; }
+.search-title { font-size: 14px; }
+.search-meta {
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
