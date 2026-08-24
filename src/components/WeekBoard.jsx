@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { isSameDay, isBefore, startOfDay, getISODay, format } from 'date-fns'
-import { DAY_LABEL } from '../lib/dates'
+import { DAY_LABEL, iso } from '../lib/dates'
 import StuffCard from './StuffCard'
 import GroupedItems from './GroupedItems'
+import JournalModal from './JournalModal'
 
 /**
  * Bảng 7 ngày.
@@ -11,10 +12,12 @@ import GroupedItems from './GroupedItems'
  * - Mặc định thu gọn các ngày đã trôi qua, bấm để mở lại.
  */
 export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
-                                   onQuickAdd, topicsById = {}, renderDay }) {
+                                   onQuickAdd, topicsById = {}, journalByDate = {},
+                                   onJournalChange, renderDay }) {
   const [showPast, setShowPast] = useState(false)
   const [addDay, setAddDay] = useState(null)
   const [draft, setDraft] = useState('')
+  const [journalDay, setJournalDay] = useState(null)
   const t = startOfDay(today)
 
   const pastCount = days.filter((d) => isBefore(d.date, t)).length
@@ -50,6 +53,14 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
               <div className="day-head">
                 <span className="dow">{DAY_LABEL[getISODay(d.date)]}</span>
                 {!shrunk && <span>{format(d.date, 'd/M')}</span>}
+                {!shrunk && (
+                  <button type="button" className="journal-dot"
+                          data-has={String(!!journalByDate[d.key])}
+                          title="Nhật ký ngày này" aria-label="Nhật ký ngày này"
+                          onClick={(e) => { e.stopPropagation(); setJournalDay(d.date) }}>
+                    <JournalDotIcon />
+                  </button>
+                )}
                 {!shrunk && d.items.length > 0 && (
                   <span style={{ marginLeft: 'auto' }}>{d.items.length}</span>
                 )}
@@ -89,6 +100,23 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
           )
         })}
       </div>
+
+      {journalDay && (
+        <JournalModal
+          date={journalDay}
+          initialContent={journalByDate[iso(journalDay)] ?? ''}
+          onClose={() => setJournalDay(null)}
+          onSaved={() => onJournalChange?.()}
+        />
+      )}
     </>
+  )
+}
+
+function JournalDotIcon() {
+  return (
+    <svg width="8" height="8" viewBox="0 0 8 8">
+      <circle cx="4" cy="4" r="3.2" />
+    </svg>
   )
 }
