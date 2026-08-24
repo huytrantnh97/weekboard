@@ -7,6 +7,7 @@ import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
 import ReflectModal from '../components/ReflectModal'
+import { ReflectIcon, BackIcon } from '../components/Icons'
 
 export default function Planning({ onDone }) {
   const h = useMemo(() => horizons(), [])
@@ -84,7 +85,8 @@ export default function Planning({ onDone }) {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn ghost" onClick={onDone}>Quay lại</button>
+          <button className="btn ghost icon-btn" onClick={onDone}
+                  title="Quay lại" aria-label="Quay lại"><BackIcon /></button>
           <button className="btn primary" onClick={finish}>Xong, chốt tuần</button>
         </div>
       </header>
@@ -119,13 +121,6 @@ export default function Planning({ onDone }) {
   )
 }
 
-function ReflectIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <path d="m12 2 1.8 5.6a2 2 0 0 0 1.3 1.3L20.7 10.7 15.1 12.5a2 2 0 0 0-1.3 1.3L12 19.4l-1.8-5.6a2 2 0 0 0-1.3-1.3L3.3 10.7l5.6-1.8a2 2 0 0 0 1.3-1.3Z" />
-    </svg>
-  )
-}
 
 function Pool({ items }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })

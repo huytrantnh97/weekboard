@@ -8,6 +8,7 @@ import {
 import { iso, horizons } from '../lib/dates'
 import { format, parseISO } from 'date-fns'
 import MiniMarkdown from '../components/MiniMarkdown'
+import { BackIcon } from '../components/Icons'
 import GroupedItems from '../components/GroupedItems'
 import StuffForm from '../components/StuffForm'
 
@@ -128,8 +129,9 @@ export default function Done({ onBack, meId }) {
     <div className="app">
       <header style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <h1>Done</h1>
-        <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onBack}>
-          Quay lại
+        <button className="btn ghost icon-btn" style={{ marginLeft: 'auto' }}
+                onClick={onBack} title="Quay lại" aria-label="Quay lại">
+          <BackIcon />
         </button>
       </header>
 

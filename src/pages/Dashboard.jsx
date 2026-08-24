@@ -11,6 +11,9 @@ import Topics from '../components/Topics'
 import StuffForm from '../components/StuffForm'
 import ReflectModal from '../components/ReflectModal'
 import SearchModal from '../components/SearchModal'
+import {
+  SearchIcon, PlusIcon, PlanIcon, CheckIcon, LibraryIcon, LogoutIcon, ReflectIcon,
+} from '../components/Icons'
 
 const TITLES = {
   next_week:  'Next week',
@@ -98,17 +101,27 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
                   onClick={() => setSearchOpen(true)}>
             <SearchIcon />
           </button>
-          <button className="btn" onClick={() => setEditing(null)}>+ Add</button>
+          <button className="btn icon-btn" title="Thêm việc mới" aria-label="Thêm việc mới"
+                  onClick={() => setEditing(null)}>
+            <PlusIcon />
+          </button>
           <button
-            className={`btn ${!planned && isSunday ? 'glow' : 'primary'}`}
+            className={`btn icon-btn ${!planned && isSunday ? 'glow' : 'primary'}`}
+            title="Lập kế hoạch tuần sau" aria-label="Lập kế hoạch tuần sau"
             onClick={onOpenPlanning}>
-            Plan for next week
+            <PlanIcon />
           </button>
           {onOpenDone && (
-            <button className="btn ghost" onClick={onOpenDone}>Done</button>
+            <button className="btn ghost icon-btn" title="Đã xong" aria-label="Đã xong"
+                    onClick={onOpenDone}>
+              <CheckIcon />
+            </button>
           )}
           {onOpenResources && (
-            <button className="btn ghost" onClick={onOpenResources}>Resource</button>
+            <button className="btn ghost icon-btn" title="Resource" aria-label="Resource"
+                    onClick={onOpenResources}>
+              <LibraryIcon />
+            </button>
           )}
           {onSignOut && (
             <button className="btn ghost icon-btn" title="Đăng xuất" aria-label="Đăng xuất"
@@ -171,34 +184,8 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
   )
 }
 
-function SearchIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="2" strokeLinecap="round">
-      <circle cx="11" cy="11" r="7" />
-      <line x1="16.5" y1="16.5" x2="21" y2="21" />
-    </svg>
-  )
-}
 
-function ReflectIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-      <path d="m12 2 1.8 5.6a2 2 0 0 0 1.3 1.3L20.7 10.7 15.1 12.5a2 2 0 0 0-1.3 1.3L12 19.4l-1.8-5.6a2 2 0 0 0-1.3-1.3L3.3 10.7l5.6-1.8a2 2 0 0 0 1.3-1.3Z" />
-    </svg>
-  )
-}
 
-function LogoutIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <polyline points="16 17 21 12 16 7" />
-      <line x1="21" y1="12" x2="9" y2="12" />
-    </svg>
-  )
-}
 
 function Section({ title, count, hint, children }) {
   return (

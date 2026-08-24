@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import {
   listResources, createResource, updateResource, deleteResource, listTopics,
 } from '../lib/api'
+import { PlusIcon, BackIcon } from '../components/Icons'
 
 export default function Resources({ onBack }) {
   const [items, setItems] = useState([])
@@ -37,8 +38,10 @@ export default function Resources({ onBack }) {
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <h1>Resource</h1>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
-          <button className="btn" onClick={() => setEditing(null)}>+ Add</button>
-          <button className="btn ghost" onClick={onBack}>Quay lại</button>
+          <button className="btn icon-btn" onClick={() => setEditing(null)}
+                  title="Thêm resource" aria-label="Thêm resource"><PlusIcon /></button>
+          <button className="btn ghost icon-btn" onClick={onBack}
+                  title="Quay lại" aria-label="Quay lại"><BackIcon /></button>
         </div>
       </header>
 
