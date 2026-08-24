@@ -125,6 +125,31 @@ export const getReflection = (weekStartIso) =>
  * Gọi Edge Function để tạo báo cáo ngay cho CHÍNH người đang đăng nhập
  * (không đợi tới 20h Chủ nhật). Ném lỗi nếu thiếu cấu hình/API key.
  */
+/* -------------------------------- RESOURCES ------------------------------ */
+
+export const listResources = () =>
+  supabase.from('resources').select('*')
+    .order('position', { ascending: false }).then(ok)
+
+export const createResource = (payload) =>
+  supabase.from('resources')
+    .insert({ ...payload, position: Date.now() }).select().single().then(ok)
+
+export const updateResource = (id, patch) =>
+  supabase.from('resources').update(patch).eq('id', id).select().single().then(ok)
+
+export const deleteResource = (id) =>
+  supabase.from('resources').delete().eq('id', id).then(ok)
+
+/* ------------------------------ USER SETTINGS ---------------------------- */
+
+export const getSettings = () =>
+  supabase.from('user_settings').select('*').maybeSingle().then(ok)
+
+export const saveSettings = (patch) =>
+  supabase.from('user_settings')
+    .upsert(patch, { onConflict: 'user_id' }).select().single().then(ok)
+
 /* ------------------------------ DAILY JOURNAL ---------------------------- */
 
 export const listJournal = (fromIso, toIso) =>
