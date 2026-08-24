@@ -340,3 +340,22 @@ h2 { font-size: 15px; }
 .journal-dot[data-has='true'] { color: var(--gold); }
 .journal-dot[data-has='true'] svg { fill: currentColor; stroke: none; }
 .journal-dot:hover { color: var(--pine); }
+
+/* ---------------------------------------------------------------- resource */
+.resource {
+  display: flex; align-items: flex-start; gap: var(--sp-2);
+  background: var(--surface); border: 1px solid var(--rule);
+  border-radius: var(--r-sm); padding: 10px 12px;
+}
+.resource-title {
+  font: inherit; font-size: 14px; font-weight: 600; text-align: left;
+  background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink);
+}
+.resource-title:hover { color: var(--pine); }
+.resource-url {
+  font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
+  margin-top: 3px; overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------- tg settings */
+.tg-check { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; }

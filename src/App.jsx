@@ -4,6 +4,7 @@ import { toEmail } from './lib/identity'
 import Dashboard from './pages/Dashboard'
 import Planning from './pages/Planning'
 import Done from './pages/Done'
+import Resources from './pages/Resources'
 import PullToRefresh from './components/PullToRefresh'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Dashboard key={tick} meId={session.user.id}
                    onOpenPlanning={() => setPage('plan')}
                    onOpenDone={() => setPage('done')}
+                   onOpenResources={() => setPage('resource')}
                    onSignOut={() => supabase.auth.signOut()} />
       )}
       {page === 'plan' && (
@@ -40,6 +42,9 @@ export default function App() {
       {page === 'done' && (
         <Done key={tick} meId={session.user.id}
               onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
+      )}
+      {page === 'resource' && (
+        <Resources key={tick} onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
       )}
     </PullToRefresh>
   )
