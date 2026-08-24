@@ -125,6 +125,26 @@ export const getReflection = (weekStartIso) =>
  * Gọi Edge Function để tạo báo cáo ngay cho CHÍNH người đang đăng nhập
  * (không đợi tới 20h Chủ nhật). Ném lỗi nếu thiếu cấu hình/API key.
  */
+/* ------------------------------ DAILY JOURNAL ---------------------------- */
+
+export const listJournal = (fromIso, toIso) =>
+  supabase.from('journal_entries').select('*')
+    .gte('entry_date', fromIso).lte('entry_date', toIso).then(ok)
+
+export const listAllJournalUpTo = (toIso) =>
+  supabase.from('journal_entries').select('*')
+    .lte('entry_date', toIso).order('entry_date', { ascending: true }).then(ok)
+
+/** Nội dung rỗng → xoá hẳn dòng ghi chú của ngày đó thay vì để lại dòng trống. */
+export const saveJournal = (entryDateIso, content) => {
+  const text = content.trim()
+  return text
+    ? supabase.from('journal_entries')
+        .upsert({ entry_date: entryDateIso, content: text }, { onConflict: 'user_id,entry_date' })
+        .select().single().then(ok)
+    : supabase.from('journal_entries').delete().eq('entry_date', entryDateIso).then(ok)
+}
+
 export const triggerReflect = async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Chưa đăng nhập')
