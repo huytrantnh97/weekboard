@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { searchAll } from '../lib/api'
-import { dateText } from '../lib/dates'
+import { dateText, DAY_LABEL } from '../lib/dates'
+import { getISODay } from 'date-fns'
+import MiniMarkdown from './MiniMarkdown'
 
 const EMPTY = { stuff: [], journal: [], resources: [], reflections: [], topics: [] }
 const TYPE_LABEL = { task: 'task', event: 'event', habit: 'habit' }
@@ -12,6 +14,7 @@ export default function SearchModal({ onClose, onOpenStuff }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const seq = useRef(0)
+  const [preview, setPreview] = useState(null)   // { title, content, markdown }
 
   // Gõ tới đâu tìm tới đó, nhưng chờ 250ms cho ngừng gõ mới gọi server.
   // seq để bỏ qua kết quả về muộn của lần gõ cũ (tránh nhấp nháy sai kết quả).
@@ -66,12 +69,19 @@ export default function SearchModal({ onClose, onOpenStuff }) {
             </button>
           )} />
 
-          <Group title="Nhật ký" items={res.journal} render={(j) => (
-            <div key={j.entry_date} className="search-item static">
-              <span className="search-title">{format(parseISO(j.entry_date), 'd/M/yyyy')}</span>
-              <span className="search-meta">{snip(j.content)}</span>
-            </div>
-          )} />
+          <Group title="Nhật ký" items={res.journal} render={(j) => {
+            const d = parseISO(j.entry_date)
+            return (
+              <button key={j.entry_date} className="search-item"
+                      onClick={() => setPreview({
+                        title: `Nhật ký · ${DAY_LABEL[getISODay(d)]} ${format(d, 'd/M/yyyy')}`,
+                        content: j.content,
+                      })}>
+                <span className="search-title">{format(d, 'd/M/yyyy')}</span>
+                <span className="search-meta">{snip(j.content)}</span>
+              </button>
+            )
+          }} />
 
           <Group title="Resource" items={res.resources} render={(r) => (
             r.url
@@ -94,15 +104,35 @@ export default function SearchModal({ onClose, onOpenStuff }) {
           )} />
 
           <Group title="Báo cáo Reflect" items={res.reflections} render={(r) => (
-            <div key={r.week_start} className="search-item static">
+            <button key={r.week_start} className="search-item"
+                    onClick={() => setPreview({
+                      title: `Reflect · tuần ${format(parseISO(r.week_start), 'd/M/yyyy')}`,
+                      content: r.content,
+                      markdown: true,
+                    })}>
               <span className="search-title">
                 Tuần {format(parseISO(r.week_start), 'd/M/yyyy')}
               </span>
               <span className="search-meta">{snip(r.content)}</span>
-            </div>
+            </button>
           )} />
         </div>
       </div>
+
+      {preview && (
+        <div className="modal-bg" onClick={(e) => { e.stopPropagation(); setPreview(null) }}>
+          <div className="modal" style={{ maxWidth: 560 }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
+              <h2 style={{ fontSize: 15 }}>{preview.title}</h2>
+              <button className="btn ghost" style={{ marginLeft: 'auto' }}
+                      onClick={() => setPreview(null)}>Đóng</button>
+            </div>
+            {preview.markdown
+              ? <MiniMarkdown text={preview.content} />
+              : <p className="preview-text">{preview.content}</p>}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
