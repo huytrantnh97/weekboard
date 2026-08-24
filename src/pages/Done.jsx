@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   listStuff, listTopics, listArchivedTopics, setDone, restoreTopic, deleteTopic,
+  listAllJournalUpTo,
 } from '../lib/api'
+import { iso } from '../lib/dates'
 import GroupedItems from '../components/GroupedItems'
 import StuffForm from '../components/StuffForm'
 
@@ -16,6 +18,8 @@ export default function Done({ onBack, meId }) {
   const [topics, setTopics] = useState([])       // topic đang mở, cho dropdown trong form sửa
   const [archived, setArchived] = useState([])
   const [editing, setEditing] = useState(undefined)
+  const [exportBusy, setExportBusy] = useState(false)
+  const [exportErr, setExportErr] = useState(null)
 
   const load = async () => {
     const [s, t, a] = await Promise.all([listStuff(), listTopics(), listArchivedTopics()])
@@ -34,6 +38,27 @@ export default function Done({ onBack, meId }) {
   const toggle = async (item, on) => { await setDone(item.id, on); load() }
   const closeEditor = () => setEditing(undefined)
   const afterWrite = () => { closeEditor(); load() }
+
+  const exportJournalPdf = async () => {
+    setExportBusy(true)
+    setExportErr(null)
+    try {
+      const entries = await listAllJournalUpTo(iso(new Date()))
+      if (entries.length === 0) {
+        setExportErr('Chưa có ghi chú nhật ký nào.')
+        return
+      }
+      // Tách riêng, chỉ tải jsPDF + font khi thật sự bấm xuất — tránh làm
+      // nặng bundle chính cho mọi lần mở app.
+      const { buildJournalPdf } = await import('../lib/exportJournalPdf')
+      const doc = buildJournalPdf(entries)
+      doc.save(`nhat-ky-${iso(new Date())}.pdf`)
+    } catch (e) {
+      setExportErr(e.message ?? String(e))
+    } finally {
+      setExportBusy(false)
+    }
+  }
 
   const restore = async (id) => { await restoreTopic(id); load() }
   const removeTopic = async (t) => {
@@ -61,6 +86,20 @@ export default function Done({ onBack, meId }) {
             ? <div className="empty">Chưa xong việc gì.</div>
             : <GroupedItems items={doneStuff} topicsById={topicsById}
                             onToggle={toggle} onOpen={setEditing} />}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Nhật ký</h2>
+        </div>
+        <div style={{ marginTop: 12 }}>
+          <button className="btn" onClick={exportJournalPdf} disabled={exportBusy}>
+            {exportBusy ? 'Đang tạo PDF…' : 'Xuất PDF tất cả nhật ký'}
+          </button>
+          {exportErr && (
+            <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8 }}>{exportErr}</p>
+          )}
         </div>
       </section>
 

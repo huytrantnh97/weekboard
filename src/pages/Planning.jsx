@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors,
          useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core'
 import { format, isWithinInterval } from 'date-fns'
-import { listStuff, listHabitLogs, moveToDay, markWeekPlanned } from '../lib/api'
+import { listStuff, listHabitLogs, moveToDay, markWeekPlanned, listJournal } from '../lib/api'
 import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
@@ -13,12 +13,16 @@ export default function Planning({ onDone }) {
   const days = useMemo(() => daysOf(h.nextStart), [h])
   const [stuff, setStuff] = useState([])
   const [logs, setLogs] = useState([])
+  const [journal, setJournal] = useState({})
   const [dragging, setDragging] = useState(null)
   const [reflectOpen, setReflectOpen] = useState(false)
 
   const load = async () => {
-    const [s, l] = await Promise.all([listStuff(), listHabitLogs(h.nextStart, h.nextEnd)])
+    const [s, l, j] = await Promise.all([
+      listStuff(), listHabitLogs(h.nextStart, h.nextEnd), listJournal(iso(h.nextStart), iso(h.nextEnd)),
+    ])
     setStuff(s); setLogs(l)
+    setJournal(Object.fromEntries(j.map((e) => [e.entry_date, e.content])))
   }
   useEffect(() => { load() }, [])
 
@@ -97,6 +101,8 @@ export default function Planning({ onDone }) {
               days={week}
               today={h.nextStart}                 /* tuần sau: không ngày nào "đã qua" */
               renderDay={(d) => <DayDrop day={d} />}
+              journalByDate={journal}
+              onJournalChange={load}
             />
           </div>
         </div>

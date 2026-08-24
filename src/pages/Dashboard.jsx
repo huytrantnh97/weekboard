@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
-  createStuff,
+  createStuff, listJournal,
 } from '../lib/api'
-import { horizons, buildWeek, bucketOf, isOverdue, sortStuff } from '../lib/dates'
+import { horizons, buildWeek, bucketOf, isOverdue, sortStuff, iso } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
@@ -25,15 +25,18 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId 
   const [topics, setTopics] = useState([])
   const [logs, setLogs] = useState([])
   const [planned, setPlanned] = useState(true)
+  const [journal, setJournal] = useState({})
   const h = useMemo(() => horizons(), [])
 
   const load = async () => {
-    const [s, t, l, p] = await Promise.all([
+    const [s, t, l, p, j] = await Promise.all([
       listStuff(), listTopics(),
       listHabitLogs(h.thisStart, h.nextEnd),
       isWeekPlanned(h.nextStart),
+      listJournal(iso(h.thisStart), iso(h.thisEnd)),
     ])
     setStuff(s); setTopics(t); setLogs(l); setPlanned(p)
+    setJournal(Object.fromEntries(j.map((e) => [e.entry_date, e.content])))
   }
   useEffect(() => { load() }, [])
 
@@ -109,7 +112,8 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId 
 
       <div style={{ marginTop: 16 }}>
         <WeekBoard days={week} onToggle={toggle} topicsById={topicsById}
-                   onOpen={openEditor} onQuickAdd={quickAdd} />
+                   onOpen={openEditor} onQuickAdd={quickAdd}
+                   journalByDate={journal} onJournalChange={load} />
       </div>
 
       {overdue.length > 0 && (
