@@ -1,9 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   listStuff, listTopics, listArchivedTopics, setDone, restoreTopic, deleteTopic,
-  listAllJournalUpTo, getSettings, saveSettings,
+  listJournalBefore, deleteJournalEntries,
+  listReflections, deleteReflections,
+  getSettings, saveSettings,
 } from '../lib/api'
-import { iso } from '../lib/dates'
+import { iso, horizons } from '../lib/dates'
+import { format, parseISO } from 'date-fns'
+import MiniMarkdown from '../components/MiniMarkdown'
 import GroupedItems from '../components/GroupedItems'
 import StuffForm from '../components/StuffForm'
 
@@ -22,12 +26,18 @@ export default function Done({ onBack, meId }) {
   const [exportErr, setExportErr] = useState(null)
   const [tg, setTg] = useState({ telegram_chat_id: '', notify_events: true, notify_daily: true })
   const [tgMsg, setTgMsg] = useState(null)
+  const [reflections, setReflections] = useState([])
+  const [openReflect, setOpenReflect] = useState(null)
 
   const load = async () => {
-    const [s, t, a, cfg] = await Promise.all([
-      listStuff(), listTopics(), listArchivedTopics(), getSettings(),
+    const [s, t, a, cfg, refl] = await Promise.all([
+      listStuff(), listTopics(), listArchivedTopics(), getSettings(), listReflections(),
     ])
     setStuff(s); setTopics(t); setArchived(a)
+    // Chỉ hiện báo cáo của các tuần ĐÃ QUA; tuần hiện tại vẫn xem ở nút Reflect
+    const thisWeek = iso(horizons().thisStart)
+    setReflections(refl.filter((r) => r.week_start < thisWeek)
+      .sort((a2, b2) => b2.week_start.localeCompare(a2.week_start)))
     if (cfg) {
       setTg({
         telegram_chat_id: cfg.telegram_chat_id ?? '',
@@ -50,20 +60,42 @@ export default function Done({ onBack, meId }) {
   const closeEditor = () => setEditing(undefined)
   const afterWrite = () => { closeEditor(); load() }
 
-  const exportJournalPdf = async () => {
-    setExportBusy(true)
+  /**
+   * Xuất PDF rồi XOÁ khỏi database. Thứ tự bắt buộc: tạo file và gọi save()
+   * thành công trước, xoá sau — nếu tạo PDF lỗi thì dữ liệu vẫn còn nguyên.
+   */
+  const exportAndPurge = async (kind) => {
+    const isJournal = kind === 'journal'
+    setExportBusy(kind)
     setExportErr(null)
     try {
-      const entries = await listAllJournalUpTo(iso(new Date()))
-      if (entries.length === 0) {
-        setExportErr('Chưa có ghi chú nhật ký nào.')
+      const rows = isJournal
+        ? await listJournalBefore(iso(new Date()))   // chỉ các ngày đã qua
+        : reflections
+      if (rows.length === 0) {
+        setExportErr(isJournal ? 'Chưa có ghi chú của ngày đã qua.' : 'Chưa có báo cáo nào.')
         return
       }
-      // Tách riêng, chỉ tải jsPDF + font khi thật sự bấm xuất — tránh làm
-      // nặng bundle chính cho mọi lần mở app.
-      const { buildJournalPdf } = await import('../lib/exportJournalPdf')
-      const doc = buildJournalPdf(entries)
-      doc.save(`nhat-ky-${iso(new Date())}.pdf`)
+
+      const what = isJournal ? `${rows.length} ghi chú` : `${rows.length} báo cáo`
+      if (!confirm(
+        `Xuất ${what} ra PDF và XOÁ khỏi database?\n\n`
+        + 'Sau khi tải, dữ liệu này sẽ bị xoá vĩnh viễn khỏi app — '
+        + 'chỉ còn trong file PDF trên máy bạn. Hãy chắc bạn lưu file lại.',
+      )) return
+
+      // Tách riêng, chỉ tải jsPDF + font khi thật sự bấm xuất.
+      const mod = await import('../lib/exportJournalPdf')
+      const doc = isJournal ? mod.buildJournalPdf(rows) : mod.buildReflectionsPdf(rows)
+      const stamp = iso(new Date())
+      doc.save(isJournal ? `nhat-ky-${stamp}.pdf` : `reflect-${stamp}.pdf`)
+
+      if (isJournal) await deleteJournalEntries(rows.map((r) => r.entry_date))
+      else await deleteReflections(rows.map((r) => r.week_start))
+
+      setOpenReflect(null)
+      await load()
+      setExportErr(`Đã tải PDF và xoá ${what} khỏi database.`)
     } catch (e) {
       setExportErr(e.message ?? String(e))
     } finally {
@@ -119,13 +151,57 @@ export default function Done({ onBack, meId }) {
           <h2>Nhật ký</h2>
         </div>
         <div style={{ marginTop: 12 }}>
-          <button className="btn" onClick={exportJournalPdf} disabled={exportBusy}>
-            {exportBusy ? 'Đang tạo PDF…' : 'Xuất PDF tất cả nhật ký'}
+          <button className="btn" onClick={() => exportAndPurge('journal')}
+                  disabled={!!exportBusy}>
+            {exportBusy === 'journal' ? 'Đang tạo PDF…' : 'Xuất PDF các ngày đã qua'}
           </button>
-          {exportErr && (
-            <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8 }}>{exportErr}</p>
-          )}
+          <p className="card-meta" style={{ marginTop: 6 }}>
+            Xuất xong sẽ xoá khỏi database. Ghi chú của hôm nay được giữ lại.
+          </p>
         </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Báo cáo Reflect</h2>
+          <span className="count">{reflections.length}</span>
+        </div>
+        <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
+          {reflections.length === 0
+            ? <div className="empty">Chưa có báo cáo của tuần đã qua.</div>
+            : (
+              <>
+                {reflections.map((r) => (
+                  <div key={r.week_start} className="archived-topic"
+                       style={{ display: 'block' }}>
+                    <button type="button" className="resource-title"
+                            onClick={() => setOpenReflect(
+                              openReflect === r.week_start ? null : r.week_start)}>
+                      Tuần {format(parseISO(r.week_start), 'd/M/yyyy')}
+                      {openReflect === r.week_start ? ' ▾' : ' ▸'}
+                    </button>
+                    {openReflect === r.week_start && (
+                      <div style={{ marginTop: 8 }}>
+                        <MiniMarkdown text={r.content} />
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div>
+                  <button className="btn" onClick={() => exportAndPurge('reflect')}
+                          disabled={!!exportBusy}>
+                    {exportBusy === 'reflect' ? 'Đang tạo PDF…' : 'Xuất PDF tất cả báo cáo'}
+                  </button>
+                  <p className="card-meta" style={{ marginTop: 6 }}>
+                    Xuất xong sẽ xoá khỏi database.
+                  </p>
+                </div>
+              </>
+            )}
+        </div>
+        {exportErr && (
+          <p style={{ color: 'var(--danger)', fontSize: 13, marginTop: 8 }}>{exportErr}</p>
+        )}
       </section>
 
       <section className="section">

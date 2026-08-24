@@ -10,6 +10,7 @@ import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
 import StuffForm from '../components/StuffForm'
 import ReflectModal from '../components/ReflectModal'
+import SearchModal from '../components/SearchModal'
 
 const TITLES = {
   next_week:  'Next week',
@@ -21,6 +22,7 @@ const TITLES = {
 export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources, onSignOut, meId }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [reflectOpen, setReflectOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(false)
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
   const [logs, setLogs] = useState([])
@@ -92,6 +94,10 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <button className="btn ghost icon-btn" title="Tìm kiếm" aria-label="Tìm kiếm"
+                  onClick={() => setSearchOpen(true)}>
+            <SearchIcon />
+          </button>
           <button className="btn" onClick={() => setEditing(null)}>+ Add</button>
           <button
             className={`btn ${!planned && isSunday ? 'glow' : 'primary'}`}
@@ -156,7 +162,22 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       {reflectOpen && (
         <ReflectModal weekStart={h.thisStart} onClose={() => setReflectOpen(false)} />
       )}
+
+      {searchOpen && (
+        <SearchModal onClose={() => setSearchOpen(false)}
+                     onOpenStuff={(item) => setEditing(item)} />
+      )}
     </div>
+  )
+}
+
+function SearchIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="16.5" y1="16.5" x2="21" y2="21" />
+    </svg>
   )
 }
 
