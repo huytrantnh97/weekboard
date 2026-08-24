@@ -377,3 +377,6 @@ h2 { font-size: 15px; }
   font-family: var(--font-mono); font-size: 11px; color: var(--ink-3);
   overflow-wrap: anywhere;
 }
+
+/* Nội dung nhật ký giữ nguyên xuống dòng người dùng đã gõ */
+.preview-text { white-space: pre-wrap; font-size: 14px; line-height: 1.6; margin: 0; }
