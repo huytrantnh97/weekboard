@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   listStuff, listTopics, listArchivedTopics, setDone, restoreTopic, deleteTopic,
-  listAllJournalUpTo,
+  listAllJournalUpTo, getSettings, saveSettings,
 } from '../lib/api'
 import { iso } from '../lib/dates'
 import GroupedItems from '../components/GroupedItems'
@@ -20,10 +20,21 @@ export default function Done({ onBack, meId }) {
   const [editing, setEditing] = useState(undefined)
   const [exportBusy, setExportBusy] = useState(false)
   const [exportErr, setExportErr] = useState(null)
+  const [tg, setTg] = useState({ telegram_chat_id: '', notify_events: true, notify_daily: true })
+  const [tgMsg, setTgMsg] = useState(null)
 
   const load = async () => {
-    const [s, t, a] = await Promise.all([listStuff(), listTopics(), listArchivedTopics()])
+    const [s, t, a, cfg] = await Promise.all([
+      listStuff(), listTopics(), listArchivedTopics(), getSettings(),
+    ])
     setStuff(s); setTopics(t); setArchived(a)
+    if (cfg) {
+      setTg({
+        telegram_chat_id: cfg.telegram_chat_id ?? '',
+        notify_events: cfg.notify_events,
+        notify_daily: cfg.notify_daily,
+      })
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -57,6 +68,20 @@ export default function Done({ onBack, meId }) {
       setExportErr(e.message ?? String(e))
     } finally {
       setExportBusy(false)
+    }
+  }
+
+  const saveTg = async () => {
+    setTgMsg(null)
+    try {
+      await saveSettings({
+        telegram_chat_id: tg.telegram_chat_id.trim() || null,
+        notify_events: tg.notify_events,
+        notify_daily: tg.notify_daily,
+      })
+      setTgMsg('Đã lưu.')
+    } catch (e) {
+      setTgMsg(e.message ?? String(e))
     }
   }
 
@@ -121,6 +146,35 @@ export default function Done({ onBack, meId }) {
                 </div>
               </div>
             ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-head">
+          <h2>Thông báo Telegram</h2>
+        </div>
+        <div style={{ marginTop: 12, display: 'grid', gap: 10, maxWidth: 420 }}>
+          <input className="field" placeholder="Telegram chat ID (vd: 123456789)"
+                 value={tg.telegram_chat_id}
+                 onChange={(e) => setTg((p) => ({ ...p, telegram_chat_id: e.target.value }))} />
+          <label className="tg-check">
+            <input type="checkbox" checked={tg.notify_events}
+                   onChange={(e) => setTg((p) => ({ ...p, notify_events: e.target.checked }))} />
+            <span>Báo khi event tới giờ</span>
+          </label>
+          <label className="tg-check">
+            <input type="checkbox" checked={tg.notify_daily}
+                   onChange={(e) => setTg((p) => ({ ...p, notify_daily: e.target.checked }))} />
+            <span>Tổng hợp việc chưa xong lúc 20:00</span>
+          </label>
+          <div>
+            <button className="btn primary" onClick={saveTg}>Lưu</button>
+            {tgMsg && <span className="card-meta" style={{ marginLeft: 10 }}>{tgMsg}</span>}
+          </div>
+          <p className="card-meta">
+            Lấy chat ID: mở Telegram, nhắn bất kỳ cho bot của bạn, rồi nhắn cho
+            @userinfobot để lấy số ID của mình.
+          </p>
         </div>
       </section>
 

@@ -18,7 +18,7 @@ const TITLES = {
   no_date:    'No date',
 }
 
-export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId }) {
+export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources, onSignOut, meId }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [reflectOpen, setReflectOpen] = useState(false)
   const [stuff, setStuff] = useState([])
@@ -100,6 +100,9 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onSignOut, meId 
           </button>
           {onOpenDone && (
             <button className="btn ghost" onClick={onOpenDone}>Done</button>
+          )}
+          {onOpenResources && (
+            <button className="btn ghost" onClick={onOpenResources}>Resource</button>
           )}
           {onSignOut && (
             <button className="btn ghost icon-btn" title="Đăng xuất" aria-label="Đăng xuất"
