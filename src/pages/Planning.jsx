@@ -2,7 +2,9 @@ import { useEffect, useMemo, useState } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors,
          useDraggable, useDroppable, DragOverlay } from '@dnd-kit/core'
 import { format, isWithinInterval } from 'date-fns'
-import { listStuff, listHabitLogs, moveToDay, markWeekPlanned, listJournal } from '../lib/api'
+import {
+  listStuff, listHabitLogs, moveToDay, markWeekPlanned, listJournal, createStuff,
+} from '../lib/api'
 import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
@@ -67,6 +69,11 @@ export default function Planning({ onDone }) {
     load()
   }
 
+  const quickAdd = async (dateKey, title) => {
+    await createStuff({ type: 'task', title, date_mode: 'single', start_date: dateKey })
+    load()
+  }
+
   const finish = async () => { await markWeekPlanned(h.nextStart); onDone?.() }
 
   return (
@@ -98,15 +105,14 @@ export default function Planning({ onDone }) {
       >
         <div className="plan-grid" style={{ marginTop: 16 }}>
           <Pool items={pool} />
-          <div>
-            <WeekBoard
-              days={week}
-              today={h.nextStart}                 /* tuần sau: không ngày nào "đã qua" */
-              renderDay={(d) => <DayDrop day={d} />}
-              journalByDate={journal}
-              onJournalChange={load}
-            />
-          </div>
+          <WeekBoard
+            days={week}
+            today={h.nextStart}                 /* tuần sau: không ngày nào "đã qua" */
+            renderDay={(d) => <DayDrop day={d} />}
+            journalByDate={journal}
+            onJournalChange={load}
+            onQuickAdd={quickAdd}
+          />
         </div>
 
         <DragOverlay>
@@ -127,8 +133,10 @@ function Pool({ items }) {
   return (
     <div ref={setNodeRef} className={`pool ${isOver ? 'drop-active' : ''}`}>
       <div className="eyebrow">Chưa xếp ngày · {items.length}</div>
-      {items.map((s) => <Draggable key={s.id} item={s} />)}
-      {items.length === 0 && <div className="empty">Đã xếp hết. Đẹp.</div>}
+      <div className="pool-items">
+        {items.map((s) => <Draggable key={s.id} item={s} />)}
+        {items.length === 0 && <div className="empty">Đã xếp hết. Đẹp.</div>}
+      </div>
     </div>
   )
 }
