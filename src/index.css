@@ -158,17 +158,22 @@ h2 { font-size: 15px; }
 }
 
 /* --------------------------------------------------------- planning page */
+/* Hàng chờ nằm TRÊN lưới tuần, kéo từ trên xuống các cột bên dưới —
+   nhờ vậy 7 cột được dùng trọn bề ngang màn hình thay vì mất 280px cho cột bên. */
 .plan-grid { display: grid; gap: var(--sp-4); grid-template-columns: 1fr; }
-@media (min-width: 900px) {
-  .plan-grid { grid-template-columns: 280px 1fr; align-items: start; }
-}
+
 .pool {
   background: var(--surface); border: 1px solid var(--rule);
   border-radius: var(--r-md); padding: var(--sp-3);
   display: flex; flex-direction: column; gap: var(--sp-2);
-  position: sticky; top: var(--sp-4);
-  max-height: calc(100vh - 48px); overflow: auto;
 }
+/* Thẻ trong hàng chờ xếp ngang, tự xuống dòng; nhiều quá thì cuộn dọc. */
+.pool-items {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2);
+  max-height: 32vh; overflow-y: auto;
+}
+.pool-items > * { flex: 0 1 auto; max-width: 260px; }
+.pool-items .card { height: 100%; }
 .drop-active { background: var(--pine-soft); }
 
 /* ------------------------------------------------------------ topics */
@@ -191,8 +196,14 @@ h2 { font-size: 15px; }
 .field:focus-visible { outline: 2px solid var(--pine); outline-offset: 1px; }
 
 /* ------------------------------------------------------------- topics */
-.topic { font: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.topic { font: inherit; display: inline-flex; align-items: center; gap: 6px; }
 .topic:hover { border-color: var(--ink-3); }
+.topic-label {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0;
+  cursor: pointer;
+}
+.topic-link { color: inherit; text-decoration: none; opacity: .65; font-size: 12px; }
+.topic-link:hover { opacity: 1; }
 .topic-on { background: var(--pine); border-color: var(--pine); color: #fff; }
 .topic-n {
   font-family: var(--font-mono); font-size: 11px;
@@ -252,18 +263,24 @@ h2 { font-size: 15px; }
 .datefield .field { padding-right: 32px; }
 .field-bad { border-color: var(--danger); }
 
-.datefield-pick {
-  position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
-  width: 24px; height: 24px; padding: 0;
-  font-size: 13px; line-height: 1; color: var(--ink-3);
-  background: none; border: 0; border-radius: 4px; cursor: pointer;
+.datefield-icon {
+  position: absolute; right: 9px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; line-height: 1; color: var(--ink-3); pointer-events: none;
 }
-.datefield-pick:hover { color: var(--pine); background: var(--pine-soft); }
 
+/*
+  Ô ngày gốc: trong suốt nhưng phủ đúng vùng biểu tượng lịch và NHẬN được
+  thao tác chạm. Đây là thứ mở bảng chọn ngày trên điện thoại.
+  Không dùng display:none / width:1px / pointer-events:none — làm vậy thì
+  trên di động không chạm vào được, đúng lỗi đã gặp.
+*/
 .datefield-native {
-  position: absolute; right: 8px; top: 50%;
-  width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0;
+  position: absolute; right: 0; top: 0;
+  width: 34px; height: 100%;
+  opacity: 0; border: 0; padding: 0; margin: 0; background: none;
+  cursor: pointer;
 }
+.datefield:focus-within .datefield-icon { color: var(--pine); }
 
 
 /* ------------------------------------------------------------ topic groups
