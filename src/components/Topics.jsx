@@ -31,12 +31,19 @@ export default function Topics({ topics, stuff, onChanged }) {
         {topics.map((t) => {
           const n = stuff.filter((s) => s.topic_id === t.id).length
           return (
-            <button key={t.id}
-                    className={`topic ${t.id === openId ? 'topic-on' : ''}`}
-                    onClick={() => setOpenId(t.id === openId ? null : t.id)}>
-              {t.title}
+            <span key={t.id} className={`topic ${t.id === openId ? 'topic-on' : ''}`}>
+              <button type="button" className="topic-label"
+                      onClick={() => setOpenId(t.id === openId ? null : t.id)}>
+                {t.title}
+              </button>
               {n > 0 && <span className="topic-n">{n}</span>}
-            </button>
+              {t.link && (
+                <a className="topic-link" href={t.link}
+                   target="_blank" rel="noopener noreferrer"
+                   title={t.link} aria-label={`Mở link của ${t.title}`}
+                   onClick={(e) => e.stopPropagation()}>↗</a>
+              )}
+            </span>
           )
         })}
       </div>
@@ -59,6 +66,7 @@ export default function Topics({ topics, stuff, onChanged }) {
 function TopicPanel({ topic, stuff, onChanged, onClose }) {
   const [name, setName] = useState(topic.title)
   const [note, setNote] = useState(topic.note ?? '')
+  const [link, setLink] = useState(topic.link ?? '')
   const [draft, setDraft] = useState('')
   const [type, setType] = useState('task')
 
@@ -66,8 +74,13 @@ function TopicPanel({ topic, stuff, onChanged, onClose }) {
 
   const saveName = async () => {
     const t = name.trim()
-    if (!t || (t === topic.title && note === (topic.note ?? ''))) return
-    await updateTopic(topic.id, { title: t, note: note || null })
+    const unchanged = t === topic.title
+      && note === (topic.note ?? '')
+      && link.trim() === (topic.link ?? '')
+    if (!t || unchanged) return
+    await updateTopic(topic.id, {
+      title: t, note: note || null, link: link.trim() || null,
+    })
     onChanged?.()
   }
 
@@ -111,6 +124,15 @@ function TopicPanel({ topic, stuff, onChanged, onClose }) {
 
       <textarea className="field" rows={2} placeholder="Ghi chú, câu hỏi cần nghĩ…"
                 value={note} onChange={(e) => setNote(e.target.value)} onBlur={saveName} />
+
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input type="url" className="field" placeholder="https://…"
+               value={link} onChange={(e) => setLink(e.target.value)} onBlur={saveName} />
+        {link.trim() && (
+          <a className="btn ghost" href={link.trim()} target="_blank" rel="noopener noreferrer"
+             title="Mở link" aria-label="Mở link" style={{ flex: '0 0 auto' }}>↗</a>
+        )}
+      </div>
 
       <div className="eyebrow">Đã nghĩ ra · {items.length}</div>
       {items.length === 0

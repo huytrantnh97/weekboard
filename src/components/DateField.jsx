@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { format, parse as parseFmt, isValid } from 'date-fns'
 
-const canPick = typeof HTMLInputElement !== 'undefined'
-  && 'showPicker' in HTMLInputElement.prototype
-
 /* --------------------------------------------------------------- helpers */
 
 const isoToText = (iso, fmt, out) => {
@@ -67,10 +64,6 @@ function Field({ value, onChange, placeholder, groups, textFmt, isoFmt,
     onChange(isValid(d) ? format(d, isoFmt) : '')
   }
 
-  const openPicker = () => {
-    try { native.current?.showPicker() } catch { /* trình duyệt không hỗ trợ */ }
-  }
-
   const bad = text.length === placeholder.length && !value
 
   return (
@@ -82,15 +75,29 @@ function Field({ value, onChange, placeholder, groups, textFmt, isoFmt,
         onChange={(e) => type(e.target.value)}
         {...rest}
       />
-      {canPick && (
-        <>
-          <button type="button" className="datefield-pick" onClick={openPicker}
-                  tabIndex={-1} aria-label="Chọn từ lịch">▤</button>
-          <input ref={native} type={nativeType} className="datefield-native"
-                 tabIndex={-1} aria-hidden="true" value={value || ''}
-                 onChange={(e) => onChange(e.target.value)} />
-        </>
-      )}
+
+      {/* Biểu tượng lịch chỉ để nhìn — vùng chạm thật là ô date phủ lên trên. */}
+      <span className="datefield-icon" aria-hidden="true">▤</span>
+
+      {/*
+        Ô ngày gốc của trình duyệt, trong suốt nhưng CÓ KÍCH THƯỚC THẬT và
+        nhận được thao tác chạm. Trên điện thoại, chạm vào chính nó là hệ
+        điều hành mở bảng chọn ngày — không phụ thuộc vào showPicker(),
+        vốn không chạy được trên nhiều trình duyệt di động.
+        Trên máy tính, bấm chuột thì gọi thêm showPicker() vì Chrome không
+        tự mở lịch khi chỉ click vào ô.
+      */}
+      <input
+        ref={native}
+        type={nativeType}
+        className="datefield-native"
+        aria-label="Chọn từ lịch"
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        onClick={(e) => {
+          try { e.currentTarget.showPicker?.() } catch { /* mobile tự mở */ }
+        }}
+      />
     </span>
   )
 }
