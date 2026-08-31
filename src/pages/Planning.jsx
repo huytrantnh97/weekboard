@@ -85,8 +85,9 @@ export default function Planning({ onDone }) {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <h1>Lập kế hoạch tuần sau</h1>
-            <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần"
-                    aria-label="Xem báo cáo Reflect" onClick={() => setReflectOpen(true)}>
+            <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần này"
+                    aria-label="Xem báo cáo Reflect tuần này"
+                    onClick={() => setReflectOpen(true)}>
               <ReflectIcon />
             </button>
           </div>
@@ -121,7 +122,9 @@ export default function Planning({ onDone }) {
       </DndContext>
 
       {reflectOpen && (
-        <ReflectModal weekStart={h.thisStart} onClose={() => setReflectOpen(false)} />
+        // Đang lập kế hoạch cho tuần sau, nên nhìn lại tuần vừa chạy xong.
+        <ReflectModal weekStart={h.thisStart} label="tuần này" canGenerate
+                      onClose={() => setReflectOpen(false)} />
       )}
     </div>
   )

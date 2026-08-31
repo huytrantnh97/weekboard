@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
+import { format, addDays } from 'date-fns'
 import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
   createStuff, listJournal,
@@ -64,6 +64,18 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
     () => sortStuff(stuff.filter((s) => s.type !== 'habit' && isOverdue(s, h)), h),
     [stuff, h])
 
+  /**
+   * Việc thuộc về tuần này nhưng CHƯA được xếp vào ngày cụ thể — thường do
+   * quên lập kế hoạch hôm Chủ nhật. Trước đây nhóm 'this_week' không có chỗ
+   * hiển thị nên những việc này biến mất khỏi màn hình.
+   * Việc quá hạn đã có mục riêng nên không lặp lại ở đây.
+   */
+  const unscheduled = useMemo(
+    () => sortStuff(stuff.filter((s) =>
+      s.type !== 'habit' && s.status === 'open' && !s.planned_date
+      && bucketOf(s, h) === 'this_week' && !isOverdue(s, h)), h),
+    [stuff, h])
+
   const toggle = async (item, on) => {
     if (item.type === 'habit') await toggleHabitLog(item.id, item.occurrence_date, on)
     else await setDone(item.id, on)
@@ -90,8 +102,9 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
           <div className="eyebrow">Tuần {format(h.thisStart, 'd/M')} – {format(h.thisEnd, 'd/M/yyyy')}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <h1>This week</h1>
-            <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần"
-                    aria-label="Xem báo cáo Reflect" onClick={() => setReflectOpen(true)}>
+            <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần trước"
+                    aria-label="Xem báo cáo Reflect tuần trước"
+                    onClick={() => setReflectOpen(true)}>
               <ReflectIcon />
             </button>
           </div>
@@ -138,6 +151,14 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
                    journalByDate={journal} onJournalChange={load} />
       </div>
 
+      {unscheduled.length > 0 && (
+        <Section title="Chưa sắp lịch" count={unscheduled.length}
+                 hint="thuộc tuần này, chưa xếp vào ngày nào">
+          <GroupedItems items={unscheduled} topicsById={topicsById}
+                        onToggle={toggle} onOpen={openEditor} />
+        </Section>
+      )}
+
       {overdue.length > 0 && (
         <Section title="Quá hạn" count={overdue.length}>
           <GroupedItems items={overdue} topicsById={topicsById} overdue
@@ -173,7 +194,10 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       )}
 
       {reflectOpen && (
-        <ReflectModal weekStart={h.thisStart} onClose={() => setReflectOpen(false)} />
+        // Ở màn hình chính, cái đáng nhìn lại là tuần ĐÃ KẾT THÚC.
+        // Báo cáo của tuần đang chạy xem ở trang "Lập kế hoạch tuần sau".
+        <ReflectModal weekStart={addDays(h.thisStart, -7)} label="tuần trước"
+                      onClose={() => setReflectOpen(false)} />
       )}
 
       {searchOpen && (
