@@ -168,3 +168,18 @@ export function groupByTopic(items, topicsById = {}) {
     items: map.get(key),
   }))
 }
+
+/**
+ * Tuần nào được xem ở nút Reflect trên màn hình chính.
+ * Từ T2 đến trước 20:00 Chủ nhật  → báo cáo TUẦN TRƯỚC (tuần đã kết thúc).
+ * Từ 20:00 Chủ nhật trở đi        → báo cáo TUẦN NÀY, vì đúng lúc đó
+ *                                    Edge Function vừa tạo xong báo cáo.
+ *
+ * current = true nghĩa là tuần đang xem trùng với tuần mà Edge Function
+ * sẽ tạo báo cáo cho, nên mới cho phép bấm "Tạo báo cáo ngay".
+ */
+export function reflectWeek(now = new Date()) {
+  const h = horizons(now)
+  const current = getISODay(now) === 7 && now.getHours() >= 20
+  return { weekStart: current ? h.thisStart : addDays(h.thisStart, -7), current }
+}
