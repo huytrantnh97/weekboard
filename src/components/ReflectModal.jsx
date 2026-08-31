@@ -5,10 +5,13 @@ import { iso } from '../lib/dates'
 import MiniMarkdown from './MiniMarkdown'
 
 /**
- * weekStart: Date — thứ Hai của tuần cần xem báo cáo (luôn là h.thisStart,
- * dù mở từ Dashboard hay từ trang Planning — cùng một báo cáo).
+ * weekStart   Date — thứ Hai của tuần cần xem.
+ * label       chữ hiện cạnh tiêu đề ("tuần trước" / "tuần này").
+ * canGenerate chỉ bật ở trang Planning. Edge Function luôn tạo báo cáo cho
+ *             TUẦN HIỆN TẠI, nên nút "Tạo báo cáo ngay" mà hiện ở màn hình
+ *             chính (đang xem tuần trước) sẽ tạo nhầm tuần rồi báo "vẫn chưa có".
  */
-export default function ReflectModal({ weekStart, onClose }) {
+export default function ReflectModal({ weekStart, label, canGenerate = false, onClose }) {
   const [data, setData] = useState(undefined)   // undefined: đang tải, null: chưa có
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -35,7 +38,8 @@ export default function ReflectModal({ weekStart, onClose }) {
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 12 }}>
           <h2>Reflect</h2>
           <span className="eyebrow">
-            Tuần {format(weekStart, 'd/M')} – {format(new Date(weekStart.getTime() + 6 * 86400000), 'd/M')}
+            {label ? `${label} · ` : ''}
+            {format(weekStart, 'd/M')} – {format(new Date(weekStart.getTime() + 6 * 86400000), 'd/M')}
           </span>
           <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onClose}>Đóng</button>
         </div>
@@ -45,21 +49,28 @@ export default function ReflectModal({ weekStart, onClose }) {
         {data === null && (
           <>
             <p className="empty">
-              Chưa có báo cáo cho tuần này. Báo cáo tự động tạo lúc 20:00 Chủ nhật,
-              hoặc bấm nút dưới để tạo ngay.
+              {canGenerate
+                ? 'Chưa có báo cáo cho tuần này. Báo cáo tự động tạo lúc 20:00 Chủ nhật, '
+                  + 'hoặc bấm nút dưới để tạo ngay.'
+                : 'Chưa có báo cáo cho tuần này. Báo cáo được tạo tự động lúc 20:00 Chủ nhật.'}
             </p>
-            <button className="btn primary" onClick={run} disabled={busy}>
-              {busy ? 'Đang tạo…' : 'Tạo báo cáo ngay'}
-            </button>
+            {canGenerate && (
+              <button className="btn primary" onClick={run} disabled={busy}>
+                {busy ? 'Đang tạo…' : 'Tạo báo cáo ngay'}
+              </button>
+            )}
           </>
         )}
 
         {data && (
           <>
             <MiniMarkdown text={data.content} />
-            <button className="btn ghost" onClick={run} disabled={busy} style={{ marginTop: 8 }}>
-              {busy ? 'Đang tạo lại…' : 'Tạo lại'}
-            </button>
+            {canGenerate && (
+              <button className="btn ghost" onClick={run} disabled={busy}
+                      style={{ marginTop: 8 }}>
+                {busy ? 'Đang tạo lại…' : 'Tạo lại'}
+              </button>
+            )}
           </>
         )}
 
