@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { format, addDays } from 'date-fns'
+import { format } from 'date-fns'
 import {
   listStuff, listTopics, listHabitLogs, setDone, toggleHabitLog, isWeekPlanned,
   createStuff, listJournal,
 } from '../lib/api'
-import { horizons, buildWeek, bucketOf, isOverdue, sortStuff, iso } from '../lib/dates'
+import {
+  horizons, buildWeek, bucketOf, isOverdue, sortStuff, iso, reflectWeek,
+} from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
@@ -25,6 +27,9 @@ const TITLES = {
 export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources, onSignOut, meId }) {
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
   const [reflectOpen, setReflectOpen] = useState(false)
+  // Tính lúc mở modal, không phải lúc dựng trang — nếu app mở suốt cả ngày
+  // Chủ nhật thì mốc 20:00 vẫn được nhận đúng.
+  const [reflectAt, setReflectAt] = useState(null)
   const [searchOpen, setSearchOpen] = useState(false)
   const [stuff, setStuff] = useState([])
   const [topics, setTopics] = useState([])
@@ -104,7 +109,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
             <h1>This week</h1>
             <button className="btn ghost icon-btn sm" title="Reflect — báo cáo tuần trước"
                     aria-label="Xem báo cáo Reflect tuần trước"
-                    onClick={() => setReflectOpen(true)}>
+                    onClick={() => { setReflectAt(reflectWeek()); setReflectOpen(true) }}>
               <ReflectIcon />
             </button>
           </div>
@@ -193,10 +198,12 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
         </div>
       )}
 
-      {reflectOpen && (
-        // Ở màn hình chính, cái đáng nhìn lại là tuần ĐÃ KẾT THÚC.
-        // Báo cáo của tuần đang chạy xem ở trang "Lập kế hoạch tuần sau".
-        <ReflectModal weekStart={addDays(h.thisStart, -7)} label="tuần trước"
+      {reflectOpen && reflectAt && (
+        // Trước 20:00 CN: xem tuần đã kết thúc. Từ 20:00 CN: tuần vừa được
+        // tổng kết xong. Xem lib/dates.js → reflectWeek().
+        <ReflectModal weekStart={reflectAt.weekStart}
+                      label={reflectAt.current ? 'tuần này' : 'tuần trước'}
+                      canGenerate={reflectAt.current}
                       onClose={() => setReflectOpen(false)} />
       )}
 
