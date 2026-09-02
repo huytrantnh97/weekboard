@@ -153,7 +153,8 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       <div style={{ marginTop: 16 }}>
         <WeekBoard days={week} onToggle={toggle} topicsById={topicsById}
                    onOpen={openEditor} onQuickAdd={quickAdd}
-                   journalByDate={journal} onJournalChange={load} />
+                   journalByDate={journal} onJournalChange={load}
+                   focusToday />
       </div>
 
       {unscheduled.length > 0 && (
