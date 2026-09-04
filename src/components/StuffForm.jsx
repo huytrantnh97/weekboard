@@ -59,11 +59,6 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
   const save = async (e) => {
     e.preventDefault()
     if (!f.title.trim()) return
-    // Chỉ event bắt buộc có giờ — task/habit để trống thoải mái.
-    if (f.type === 'event' && !f.start_time) {
-      setErr('Event cần có giờ bắt đầu.')
-      return
-    }
     setErr(null); setBusy(true)
     try {
       const payload = { ...f, title: f.title.trim() }
@@ -179,7 +174,7 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
         </>
       )}
 
-      <Row label={f.type === 'event' ? 'Giờ (bắt buộc)' : 'Giờ (không bắt buộc)'}>
+      <Row label="Giờ (không bắt buộc)">
         <input type="time" className="field" style={{ width: 'auto' }}
                value={f.start_time} onChange={(e) => set('start_time', e.target.value)} />
         {f.start_time && (
@@ -216,7 +211,7 @@ export default function StuffForm({ item = null, topics = [], defaultDate = null
 
       {editing && isOwner && (
         <div style={{ borderTop: '1px solid var(--rule-soft)', paddingTop: 12 }}>
-          <ShareBox stuffId={item.id} />
+          <ShareBox id={item.id} kind="stuff" />
         </div>
       )}
 

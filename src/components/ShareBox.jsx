@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react'
-import { listShares, shareStuff, unshareStuff } from '../lib/api'
+import {
+  listShares, shareStuff, unshareStuff,
+  listResourceShares, shareResource, unshareResource,
+} from '../lib/api'
 import { toEmail } from '../lib/identity'
 
-/** Chỉ hiện trong form sửa, và chỉ cho người tạo — xem StuffForm.jsx (isOwner). */
-export default function ShareBox({ stuffId }) {
+// Cùng một giao diện chia sẻ, dùng chung cho stuff và resource —
+// chỉ khác bộ hàm gọi xuống Supabase.
+const API = {
+  stuff: { list: listShares, add: shareStuff, remove: unshareStuff },
+  resource: { list: listResourceShares, add: shareResource, remove: unshareResource },
+}
+
+/** Chỉ hiện trong form sửa, và chỉ cho người tạo (xem isOwner ở nơi gọi). */
+export default function ShareBox({ id, kind = 'stuff' }) {
+  const api = API[kind]
   const [shares, setShares] = useState([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
-  const load = () => listShares(stuffId).then(setShares)
-  useEffect(() => { load() }, [stuffId])
+  const load = () => api.list(id).then(setShares)
+  useEffect(() => { load() }, [id, kind])
 
   const add = async (e) => {
     e.preventDefault()
@@ -19,11 +30,11 @@ export default function ShareBox({ stuffId }) {
     setErr(null)
     setBusy(true)
     try {
-      await shareStuff(stuffId, toEmail(v))
+      await api.add(id, toEmail(v))
       setInput('')
       await load()
     } catch (e2) {
-      // Postgres bọc message gốc trong tiền tố dài — cắt lấy phần sau dấu ":" cuối cùng
+      // Postgres bọc message gốc trong tiền tố dài — cắt lấy phần sau dấu ":" cuối
       const msg = e2.message ?? String(e2)
       setErr(msg.split(': ').pop())
     } finally {
@@ -32,7 +43,7 @@ export default function ShareBox({ stuffId }) {
   }
 
   const remove = async (email) => {
-    await unshareStuff(stuffId, email)
+    await api.remove(id, email)
     load()
   }
 
