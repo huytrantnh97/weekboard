@@ -3,8 +3,9 @@ import {
   listResources, createResource, updateResource, deleteResource, listTopics,
 } from '../lib/api'
 import { PlusIcon, BackIcon } from '../components/Icons'
+import ShareBox from '../components/ShareBox'
 
-export default function Resources({ onBack }) {
+export default function Resources({ onBack, meId }) {
   const [items, setItems] = useState([])
   const [topics, setTopics] = useState([])
   const [editing, setEditing] = useState(undefined)   // undefined = đóng, null = thêm mới
@@ -54,34 +55,41 @@ export default function Resources({ onBack }) {
             {items.length === 0 ? 'Chưa có resource nào.' : 'Không tìm thấy.'}
           </div>
         )}
-        {shown.map((r) => (
-          <div key={r.id} className="resource">
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                <button type="button" className="resource-title"
-                        onClick={() => setEditing(r)}>{r.title}</button>
-                {r.topic_id && topicsById[r.topic_id] && (
-                  <span className="topic-group-label" style={{ margin: 0 }}>
-                    {topicsById[r.topic_id].title}
-                  </span>
-                )}
+        {shown.map((r) => {
+          // meId chưa truyền xuống thì coi như của mình, tránh khoá nhầm nút
+          const isOwner = !meId || r.user_id === meId
+          return (
+            <div key={r.id} className="resource">
+              <div style={{ minWidth: 0, flex: 1 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                  <button type="button" className="resource-title"
+                          onClick={() => setEditing(r)}>{r.title}</button>
+                  {!isOwner && <span className="card-meta">👥 được chia sẻ</span>}
+                  {r.topic_id && topicsById[r.topic_id] && (
+                    <span className="topic-group-label" style={{ margin: 0 }}>
+                      {topicsById[r.topic_id].title}
+                    </span>
+                  )}
+                </div>
+                {r.note && <div className="card-meta" style={{ marginTop: 2 }}>{r.note}</div>}
+                {r.url && <div className="resource-url">{r.url}</div>}
               </div>
-              {r.note && <div className="card-meta" style={{ marginTop: 2 }}>{r.note}</div>}
-              {r.url && <div className="resource-url">{r.url}</div>}
-            </div>
 
-            {r.url && (
-              <a className="btn ghost" href={r.url} target="_blank" rel="noopener noreferrer"
-                 title="Mở link" aria-label="Mở link">↗</a>
-            )}
-            <button className="btn ghost" onClick={() => remove(r)}
-                    style={{ color: 'var(--danger)' }} aria-label="Xoá">×</button>
-          </div>
-        ))}
+              {r.url && (
+                <a className="btn ghost" href={r.url} target="_blank" rel="noopener noreferrer"
+                   title="Mở link" aria-label="Mở link">↗</a>
+              )}
+              {isOwner && (
+                <button className="btn ghost" onClick={() => remove(r)}
+                        style={{ color: 'var(--danger)' }} aria-label="Xoá">×</button>
+              )}
+            </div>
+          )
+        })}
       </div>
 
       {editing !== undefined && (
-        <ResourceForm item={editing} topics={topics}
+        <ResourceForm item={editing} topics={topics} meId={meId}
                       onClose={() => setEditing(undefined)}
                       onSaved={() => { setEditing(undefined); load() }} />
       )}
@@ -89,7 +97,7 @@ export default function Resources({ onBack }) {
   )
 }
 
-function ResourceForm({ item, topics, onClose, onSaved }) {
+function ResourceForm({ item, topics, meId, onClose, onSaved }) {
   const [f, setF] = useState(() => ({
     title: item?.title ?? '',
     url: item?.url ?? '',
@@ -99,6 +107,9 @@ function ResourceForm({ item, topics, onClose, onSaved }) {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
   const set = (k, v) => setF((p) => ({ ...p, [k]: v }))
+
+  // Resource mới thì mình là chủ. Đang sửa: chỉ chủ mới thấy phần chia sẻ.
+  const isOwner = !item || !meId || item.user_id === meId
 
   const save = async (e) => {
     e.preventDefault()
@@ -153,6 +164,16 @@ function ResourceForm({ item, topics, onClose, onSaved }) {
               {topics.map((t) => <option key={t.id} value={t.id}>{t.title}</option>)}
             </select>
           </div>
+
+          {item && !isOwner && (
+            <p className="card-meta">Resource này được người khác chia sẻ với bạn.</p>
+          )}
+
+          {item && isOwner && (
+            <div style={{ borderTop: '1px solid var(--rule-soft)', paddingTop: 12 }}>
+              <ShareBox id={item.id} kind="resource" />
+            </div>
+          )}
 
           {err && <p style={{ color: 'var(--danger)', fontSize: 13, margin: 0 }}>{err}</p>}
 
