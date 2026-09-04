@@ -44,7 +44,8 @@ export default function App() {
               onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
       )}
       {page === 'resource' && (
-        <Resources key={tick} onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
+        <Resources key={tick} meId={session.user.id}
+                   onBack={() => { setPage('home'); setTick((t) => t + 1) }} />
       )}
     </PullToRefresh>
   )
