@@ -160,10 +160,6 @@ export const getReflection = (weekStartIso) =>
   supabase.from('reflections').select('*')
     .eq('week_start', weekStartIso).maybeSingle().then(ok)
 
-/**
- * Gọi Edge Function để tạo báo cáo ngay cho CHÍNH người đang đăng nhập
- * (không đợi tới 20h Chủ nhật). Ném lỗi nếu thiếu cấu hình/API key.
- */
 /* -------------------------------- RESOURCES ------------------------------ */
 
 export const listResources = () =>
@@ -179,6 +175,18 @@ export const updateResource = (id, patch) =>
 
 export const deleteResource = (id) =>
   supabase.from('resources').delete().eq('id', id).then(ok)
+
+export const listResourceShares = (resourceId) =>
+  supabase.from('resource_shares').select('*')
+    .eq('resource_id', resourceId).then(ok)
+
+export const shareResource = (resourceId, email) =>
+  supabase.rpc('share_resource',
+    { p_resource_id: resourceId, p_email: email }).then(ok)
+
+export const unshareResource = (resourceId, email) =>
+  supabase.from('resource_shares').delete()
+    .eq('resource_id', resourceId).eq('shared_with_email', email).then(ok)
 
 /* ------------------------------ USER SETTINGS ---------------------------- */
 
@@ -218,6 +226,10 @@ export const saveJournal = (entryDateIso, content) => {
     : supabase.from('journal_entries').delete().eq('entry_date', entryDateIso).then(ok)
 }
 
+/**
+ * Gọi Edge Function để tạo báo cáo ngay cho CHÍNH người đang đăng nhập
+ * (không đợi tới 20h Chủ nhật). Ném lỗi nếu thiếu cấu hình/API key.
+ */
 export const triggerReflect = async () => {
   const { data: { session } } = await supabase.auth.getSession()
   if (!session) throw new Error('Chưa đăng nhập')
