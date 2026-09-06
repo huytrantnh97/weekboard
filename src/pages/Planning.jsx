@@ -4,12 +4,13 @@ import { DndContext, PointerSensor, useSensor, useSensors,
 import { format, isWithinInterval } from 'date-fns'
 import {
   listStuff, listHabitLogs, moveToDay, markWeekPlanned, listJournal, createStuff,
-  updateStuff,
+  updateStuff, listTopics, supabase,
 } from '../lib/api'
 import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
 import StuffCard from '../components/StuffCard'
 import ReflectModal from '../components/ReflectModal'
+import StuffForm from '../components/StuffForm'
 import { ReflectIcon, BackIcon } from '../components/Icons'
 
 export default function Planning({ onDone }) {
@@ -20,12 +21,18 @@ export default function Planning({ onDone }) {
   const [journal, setJournal] = useState({})
   const [dragging, setDragging] = useState(null)
   const [reflectOpen, setReflectOpen] = useState(false)
+  const [topics, setTopics] = useState([])
+  const [meId, setMeId] = useState(null)
+  const [editing, setEditing] = useState(undefined)   // undefined = đóng
 
   const load = async () => {
-    const [s, l, j] = await Promise.all([
+    const [s, l, j, t, sess] = await Promise.all([
       listStuff(), listHabitLogs(h.nextStart, h.nextEnd), listJournal(iso(h.nextStart), iso(h.nextEnd)),
+      listTopics(), supabase.auth.getSession(),
     ])
-    setStuff(s); setLogs(l)
+    setStuff(s); setLogs(l); setTopics(t)
+    // StuffForm cần biết ai là chủ để quyết định hiện nút Xoá / Chia sẻ
+    setMeId(sess?.data?.session?.user?.id ?? null)
     setJournal(Object.fromEntries(j.map((e) => [e.entry_date, e.content])))
   }
   useEffect(() => { load() }, [])
@@ -101,6 +108,12 @@ export default function Planning({ onDone }) {
     load()
   }
 
+  /** Bấm vào thẻ để sửa. Kéo thả vẫn chạy bình thường: cảm biến kéo chỉ
+   *  kích hoạt sau khi con trỏ đi được 6px, nên chạm-rồi-nhả là click. */
+  const openEditor = (item) => setEditing(stuff.find((s) => s.id === item.id) ?? item)
+  const closeEditor = () => setEditing(undefined)
+  const afterWrite = () => { closeEditor(); load() }
+
   const finish = async () => { await markWeekPlanned(h.nextStart); onDone?.() }
 
   return (
@@ -132,11 +145,11 @@ export default function Planning({ onDone }) {
         onDragEnd={onDragEnd}
       >
         <div className="plan-grid" style={{ marginTop: 16 }}>
-          <Pool items={pool} isOverdue={isOverdue} />
+          <Pool items={pool} isOverdue={isOverdue} onOpen={openEditor} />
           <WeekBoard
             days={week}
             today={h.nextStart}                 /* tuần sau: không ngày nào "đã qua" */
-            renderDay={(d) => <DayDrop day={d} />}
+            renderDay={(d) => <DayDrop day={d} onOpen={openEditor} />}
             journalByDate={journal}
             onJournalChange={load}
             onQuickAdd={quickAdd}
@@ -148,6 +161,15 @@ export default function Planning({ onDone }) {
         </DragOverlay>
       </DndContext>
 
+      {editing !== undefined && (
+        <div className="modal-bg" onClick={closeEditor}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <StuffForm item={editing} topics={topics} meId={meId}
+                       onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
+          </div>
+        </div>
+      )}
+
       {reflectOpen && (
         // Đang lập kế hoạch cho tuần sau, nên nhìn lại tuần vừa chạy xong.
         <ReflectModal weekStart={h.thisStart} label="tuần này" canGenerate
@@ -158,7 +180,7 @@ export default function Planning({ onDone }) {
 }
 
 
-function Pool({ items, isOverdue }) {
+function Pool({ items, isOverdue, onOpen }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })
   const lateCount = items.filter(isOverdue).length
   return (
@@ -169,7 +191,7 @@ function Pool({ items, isOverdue }) {
       </div>
       <div className="pool-items">
         {items.map((s) => (
-          <Draggable key={s.id} item={s} overdue={isOverdue(s)} />
+          <Draggable key={s.id} item={s} overdue={isOverdue(s)} onOpen={onOpen} />
         ))}
         {items.length === 0 && <div className="empty">Đã xếp hết. Đẹp.</div>}
       </div>
@@ -177,7 +199,7 @@ function Pool({ items, isOverdue }) {
   )
 }
 
-function DayDrop({ day }) {
+function DayDrop({ day, onOpen }) {
   const { setNodeRef, isOver } = useDroppable({ id: day.key })
   return (
     <div ref={setNodeRef} className={`day-items ${isOver ? 'drop-active' : ''}`}
@@ -185,18 +207,18 @@ function DayDrop({ day }) {
       {/* Habit và việc có ngày cố định thì không kéo được */}
       {day.items.map((it) => (
         it.type === 'habit' || it.date_mode === 'single'
-          ? <StuffCard key={it.key} item={it} />
-          : <Draggable key={it.key} item={it} />
+          ? <StuffCard key={it.key} item={it} onOpen={onOpen} />
+          : <Draggable key={it.key} item={it} onOpen={onOpen} />
       ))}
     </div>
   )
 }
 
-function Draggable({ item, overdue = false }) {
+function Draggable({ item, overdue = false, onOpen }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.35 : 1 }}>
-      <StuffCard item={item} overdue={overdue}
+      <StuffCard item={item} overdue={overdue} onOpen={onOpen}
                  dragProps={{ ...listeners, ...attributes }} />
     </div>
   )
