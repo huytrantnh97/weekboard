@@ -4,6 +4,7 @@ import { DndContext, PointerSensor, useSensor, useSensors,
 import { format, isWithinInterval } from 'date-fns'
 import {
   listStuff, listHabitLogs, moveToDay, markWeekPlanned, listJournal, createStuff,
+  updateStuff,
 } from '../lib/api'
 import { horizons, buildWeek, daysOf, iso, parse, dateText } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
@@ -31,9 +32,19 @@ export default function Planning({ onDone }) {
 
   const week = useMemo(() => buildWeek(h.nextStart, stuff, logs), [stuff, logs, h])
 
-  /** Hàng chờ: việc chưa có ngày cụ thể nhưng liên quan tới tuần sau. */
+  /** Việc đã trễ hạn — cần được xếp lại chứ không thể bỏ quên. */
+  const isOverdue = (s) => s.status === 'open' && s.type !== 'habit'
+    && s.end_date && parse(s.end_date) < h.today
+
+  /**
+   * Hàng chờ: việc chưa có ngày cụ thể liên quan tới tuần sau, CỘNG THÊM
+   * việc quá hạn. Việc quá hạn thường đã có planned_date ở quá khứ nên trước
+   * đây bị loại ngay từ dòng đầu và không bao giờ xuất hiện để xếp lại.
+   */
   const pool = useMemo(() => stuff.filter((s) => {
-    if (s.type === 'habit' || s.status === 'done' || s.planned_date) return false
+    if (s.type === 'habit' || s.status === 'done') return false
+    if (isOverdue(s)) return true
+    if (s.planned_date) return false
     if (s.date_mode === 'none') return true
     // range / month có giao với tuần sau
     return parse(s.start_date) <= h.nextEnd && parse(s.end_date) >= h.nextStart
@@ -50,22 +61,38 @@ export default function Planning({ onDone }) {
     if (!item) return
 
     const target = over.id === 'pool' ? null : parse(over.id)
+    const overdue = isOverdue(item)
 
-    // Chặn kéo ra ngoài khoảng cho phép
-    if (target && item.date_mode !== 'none') {
-      const inRange = isWithinInterval(target,
-        { start: parse(item.start_date), end: parse(item.end_date) })
-      if (!inRange) {
-        alert(`"${item.title}" chỉ nằm trong ${dateText(item)}.`)
-        return
+    // Việc quá hạn được kéo tự do: hạn cũ đã mất ý nghĩa, mục đích lúc này
+    // chính là dời nó sang ngày mới.
+    if (!overdue) {
+      // Chặn kéo ra ngoài khoảng cho phép
+      if (target && item.date_mode !== 'none') {
+        const inRange = isWithinInterval(target,
+          { start: parse(item.start_date), end: parse(item.end_date) })
+        if (!inRange) {
+          alert(`"${item.title}" chỉ nằm trong ${dateText(item)}.`)
+          return
+        }
       }
+      if (item.date_mode === 'single') return    // ngày cố định, không kéo được
     }
-    if (item.date_mode === 'single') return    // ngày cố định, không kéo được
 
     // cập nhật lạc quan rồi ghi DB
     setStuff((prev) => prev.map((s) =>
       s.id === item.id ? { ...s, planned_date: target ? iso(target) : null } : s))
-    await moveToDay(item.id, target, Date.now())
+
+    if (overdue && target) {
+      // Dời hẳn hạn sang ngày mới. Chỉ đổi planned_date là chưa đủ — end_date
+      // vẫn ở quá khứ nên nó sẽ tiếp tục nằm ở mục "Quá hạn" ngoài màn hình chính.
+      const d = iso(target)
+      const patch = { planned_date: d, position: Date.now() }
+      if (item.date_mode === 'single') { patch.start_date = d; patch.end_date = d }
+      else if (item.end_date && item.end_date < d) patch.end_date = d
+      await updateStuff(item.id, patch)
+    } else {
+      await moveToDay(item.id, target, Date.now())
+    }
     load()
   }
 
@@ -105,7 +132,7 @@ export default function Planning({ onDone }) {
         onDragEnd={onDragEnd}
       >
         <div className="plan-grid" style={{ marginTop: 16 }}>
-          <Pool items={pool} />
+          <Pool items={pool} isOverdue={isOverdue} />
           <WeekBoard
             days={week}
             today={h.nextStart}                 /* tuần sau: không ngày nào "đã qua" */
@@ -131,13 +158,19 @@ export default function Planning({ onDone }) {
 }
 
 
-function Pool({ items }) {
+function Pool({ items, isOverdue }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'pool' })
+  const lateCount = items.filter(isOverdue).length
   return (
     <div ref={setNodeRef} className={`pool ${isOver ? 'drop-active' : ''}`}>
-      <div className="eyebrow">Chưa xếp ngày · {items.length}</div>
+      <div className="eyebrow">
+        Chưa xếp ngày · {items.length}
+        {lateCount > 0 && ` · trong đó ${lateCount} quá hạn`}
+      </div>
       <div className="pool-items">
-        {items.map((s) => <Draggable key={s.id} item={s} />)}
+        {items.map((s) => (
+          <Draggable key={s.id} item={s} overdue={isOverdue(s)} />
+        ))}
         {items.length === 0 && <div className="empty">Đã xếp hết. Đẹp.</div>}
       </div>
     </div>
@@ -159,11 +192,12 @@ function DayDrop({ day }) {
   )
 }
 
-function Draggable({ item }) {
+function Draggable({ item, overdue = false }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.35 : 1 }}>
-      <StuffCard item={item} dragProps={{ ...listeners, ...attributes }} />
+      <StuffCard item={item} overdue={overdue}
+                 dragProps={{ ...listeners, ...attributes }} />
     </div>
   )
 }
