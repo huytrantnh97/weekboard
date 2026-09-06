@@ -25,6 +25,8 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
   const [journalDay, setJournalDay] = useState(null)
   const t = startOfDay(today)
 
+  const closeAdd = () => { setAddDay(null); setDraft('') }
+
   const todayIdx = days.findIndex((d) => isSameDay(d.date, t))
   // Chỉ thu về một ngày khi hôm nay thật sự nằm trong tuần đang hiển thị
   const focusMode = focusToday && !showAll && todayIdx >= 0
@@ -95,19 +97,37 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
 
               {!shrunk && onQuickAdd && (
                 addDay === d.key ? (
-                  <input
-                    className="field day-add-input" autoFocus placeholder="Việc gì?"
-                    value={draft}
-                    onChange={(e) => setDraft(e.target.value)}
-                    onBlur={() => { setAddDay(null); setDraft('') }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Escape') { setAddDay(null); setDraft('') }
-                      if (e.key === 'Enter' && draft.trim()) {
-                        onQuickAdd(d.key, draft.trim())
-                        setDraft('')          // giữ ô mở để nhập tiếp
-                      }
+                  /*
+                    Phải là <form> thật: trên điện thoại, phím "return"/"Go" của
+                    bàn phím ảo chỉ kích hoạt submit của form. Với <input> đứng
+                    một mình, nhiều trình duyệt di động không phát sự kiện Enter
+                    nào cả — đó là lý do trước đây bấm return không lưu được.
+                    Cũng bỏ luôn onBlur xoá nội dung: bàn phím đóng lại là ô mất
+                    focus, chữ vừa gõ bị xoá trước khi kịp lưu.
+                  */
+                  <form
+                    style={{ display: 'flex', gap: 4, marginTop: 4 }}
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      const v = draft.trim()
+                      if (!v) { closeAdd(); return }
+                      onQuickAdd(d.key, v)
+                      setDraft('')            // giữ ô mở để nhập tiếp
                     }}
-                  />
+                  >
+                    <input
+                      className="field day-add-input" autoFocus placeholder="Việc gì?"
+                      value={draft} enterKeyHint="done"
+                      style={{ flex: 1, minWidth: 0 }}
+                      onChange={(e) => setDraft(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Escape') closeAdd() }}
+                    />
+                    {/* Luôn có một đường lưu bằng cách chạm, không phụ thuộc bàn phím */}
+                    <button type="submit" className="btn day-add-ok"
+                            aria-label="Lưu việc này">✓</button>
+                    <button type="button" className="btn ghost day-add-ok"
+                            onClick={closeAdd} aria-label="Đóng">×</button>
+                  </form>
                 ) : (
                   <button className="day-add" onClick={() => setAddDay(d.key)}
                           aria-label="Thêm việc vào ngày này">+</button>
