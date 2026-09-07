@@ -171,18 +171,23 @@ function TopicPanel({ topic, stuff, onChanged, onClose, onOpenStuff }) {
                   <button type="button" className="tick" data-on={String(done)}
                           aria-label={done ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu hoàn thành'}
                           onClick={async () => { await setDone(s.id, !done); onChanged?.() }} />
+                  {/* Cả phần còn lại của dòng là vùng bấm để sửa, không chỉ
+                      riêng chữ tiêu đề — giống thẻ ở các mục phía trên. */}
                   <button type="button"
                           onClick={() => onOpenStuff?.(s)}
                           style={{
                             font: 'inherit', background: 'none', border: 0, padding: 0,
                             cursor: 'pointer', textAlign: 'left', color: 'inherit',
-                            textDecoration: done ? 'line-through' : 'none',
+                            flex: 1, minWidth: 0,
+                            display: 'flex', alignItems: 'baseline', gap: 8,
                           }}>
-                    {s.title}
+                    <span style={{ textDecoration: done ? 'line-through' : 'none' }}>
+                      {s.title}
+                    </span>
+                    <span className="card-meta" style={{ marginLeft: 'auto' }}>
+                      {s.type === 'habit' ? 'habit' : dateText(s) || 'chưa có ngày'}
+                    </span>
                   </button>
-                  <span className="card-meta" style={{ marginLeft: 'auto' }}>
-                    {s.type === 'habit' ? 'habit' : dateText(s) || 'chưa có ngày'}
-                  </span>
                 </div>
               )
             })}
