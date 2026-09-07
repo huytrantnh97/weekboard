@@ -23,11 +23,18 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
   const [addDay, setAddDay] = useState(null)
   const [draft, setDraft] = useState('')
   const [journalDay, setJournalDay] = useState(null)
+
+  // t = mốc để biết ngày nào ĐÃ QUA (trang Planning truyền đầu tuần sau,
+  //     nên tuần sau không có ngày nào bị coi là quá khứ).
+  // now = ngày hôm nay THẬT, chỉ dùng để tô màu ô "hôm nay".
+  // Tách hai thứ này ra vì trước đây dùng chung một mốc: ở trang Planning,
+  // thứ Hai tuần sau trùng với mốc đó nên bị tô màu như thể là hôm nay.
   const t = startOfDay(today)
+  const now = startOfDay(new Date())
 
   const closeAdd = () => { setAddDay(null); setDraft('') }
 
-  const todayIdx = days.findIndex((d) => isSameDay(d.date, t))
+  const todayIdx = days.findIndex((d) => isSameDay(d.date, now))
   // Chỉ thu về một ngày khi hôm nay thật sự nằm trong tuần đang hiển thị
   const focusMode = focusToday && !showAll && todayIdx >= 0
   const shownDays = focusMode ? [days[todayIdx]] : days
@@ -57,7 +64,7 @@ export default function WeekBoard({ days, today = new Date(), onToggle, onOpen,
       <div className={`rail ${hasCollapsed ? 'has-past' : ''}`}
            style={{ '--rail-cols': cols }}>
         {shownDays.map((d) => {
-          const isToday = isSameDay(d.date, t)
+          const isToday = isSameDay(d.date, now)
           const isPast = isBefore(d.date, t)
           const shrunk = collapse(d)
           return (
