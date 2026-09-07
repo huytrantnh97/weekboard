@@ -4,16 +4,30 @@ const ICON = { task: '', event: '◆', habit: '↻' }
 
 export default function StuffCard({ item, onToggle, onOpen, overdue = false,
                                    hideDate = false, dragProps }) {
-  // Trong lưới tuần, stuff đã nằm đúng ô ngày rồi → chỉ hiện giờ.
-  const when = hideDate
-    ? (item.type === 'task' ? '' : ICON[item.type])
-    : `${item.type !== 'task' ? ICON[item.type] : ''} ${dateText(item)}`.trim()
+  // Icon loại việc đứng ngay đầu dòng tiêu đề, không tách xuống dòng phụ.
+  const icon = ICON[item.type]
 
+  // Trong lưới tuần, stuff đã nằm đúng ô ngày rồi → không lặp lại ngày.
   const meta = [
     item.start_time?.slice(0, 5),
-    when,
+    hideDate ? null : dateText(item),
     overdue ? 'Quá hạn' : null,
   ].filter(Boolean).join(' · ')
+
+  const body = (
+    <>
+      <span className="card-title">
+        {icon && (
+          <span aria-hidden="true"
+                style={{ marginRight: 5, opacity: 0.55, fontSize: '0.85em' }}>
+            {icon}
+          </span>
+        )}
+        {item.title}
+      </span>
+      {meta && <span className="card-meta">{meta}</span>}
+    </>
+  )
 
   return (
     <div
@@ -36,14 +50,10 @@ export default function StuffCard({ item, onToggle, onOpen, overdue = false,
       {onOpen ? (
         <button type="button" className="card-body"
                 onClick={(e) => { e.stopPropagation(); onOpen(item) }}>
-          <span className="card-title">{item.title}</span>
-          {meta && <span className="card-meta">{meta}</span>}
+          {body}
         </button>
       ) : (
-        <div className="card-body">
-          <span className="card-title">{item.title}</span>
-          {meta && <span className="card-meta">{meta}</span>}
-        </div>
+        <div className="card-body">{body}</div>
       )}
 
       {item.link && (

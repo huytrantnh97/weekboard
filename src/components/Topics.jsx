@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   createTopic, updateTopic, archiveTopic, deleteTopic,
-  createStuff, setDone,
+  createStuff, setDone, supabase,
 } from '../lib/api'
 import { dateText, horizons, sortStuff } from '../lib/dates'
+import StuffForm from './StuffForm'
 
 /**
  * Topics/Goals to brainstorm.
@@ -13,6 +14,17 @@ import { dateText, horizons, sortStuff } from '../lib/dates'
 export default function Topics({ topics, stuff, onChanged }) {
   const [openId, setOpenId] = useState(null)
   const [draft, setDraft] = useState('')
+  const [editing, setEditing] = useState(undefined)   // undefined = đóng
+  const [meId, setMeId] = useState(null)
+
+  // StuffForm cần biết ai là chủ để quyết định hiện nút Xoá / Chia sẻ
+  useEffect(() => {
+    supabase.auth.getSession()
+      .then(({ data }) => setMeId(data?.session?.user?.id ?? null))
+  }, [])
+
+  const closeEditor = () => setEditing(undefined)
+  const afterWrite = () => { closeEditor(); onChanged?.() }
 
   const add = async (e) => {
     e.preventDefault()
@@ -57,13 +69,23 @@ export default function Topics({ topics, stuff, onChanged }) {
 
       {open && (
         <TopicPanel key={open.id} topic={open} stuff={stuff}
-                    onChanged={onChanged} onClose={() => setOpenId(null)} />
+                    onChanged={onChanged} onClose={() => setOpenId(null)}
+                    onOpenStuff={setEditing} />
+      )}
+
+      {editing !== undefined && (
+        <div className="modal-bg" onClick={closeEditor}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <StuffForm item={editing} topics={topics} meId={meId}
+                       onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
+          </div>
+        </div>
       )}
     </div>
   )
 }
 
-function TopicPanel({ topic, stuff, onChanged, onClose }) {
+function TopicPanel({ topic, stuff, onChanged, onClose, onOpenStuff }) {
   const [name, setName] = useState(topic.title)
   const [note, setNote] = useState(topic.note ?? '')
   const [link, setLink] = useState(topic.link ?? '')
@@ -139,18 +161,31 @@ function TopicPanel({ topic, stuff, onChanged, onClose }) {
         ? <div className="empty">Chưa có gì. Gõ vào ô dưới để bắt đầu.</div>
         : (
           <div style={{ display: 'grid', gap: 6 }}>
-            {items.map((s) => (
-              <label key={s.id} className="topic-item">
-                <input type="checkbox" checked={s.status === 'done'}
-                       onChange={async (e) => { await setDone(s.id, e.target.checked); onChanged?.() }} />
-                <span style={{ textDecoration: s.status === 'done' ? 'line-through' : 'none' }}>
-                  {s.title}
-                </span>
-                <span className="card-meta" style={{ marginLeft: 'auto' }}>
-                  {s.type === 'habit' ? 'habit' : dateText(s) || 'chưa có ngày'}
-                </span>
-              </label>
-            ))}
+            {/* Ô vuông = đánh dấu xong. Phần chữ = mở form sửa.
+                Trước đây cả dòng nằm trong <label> nên bấm vào chữ cũng
+                bị tính là bấm ô tick. */}
+            {items.map((s) => {
+              const done = s.status === 'done'
+              return (
+                <div key={s.id} className="topic-item">
+                  <button type="button" className="tick" data-on={String(done)}
+                          aria-label={done ? 'Bỏ đánh dấu hoàn thành' : 'Đánh dấu hoàn thành'}
+                          onClick={async () => { await setDone(s.id, !done); onChanged?.() }} />
+                  <button type="button"
+                          onClick={() => onOpenStuff?.(s)}
+                          style={{
+                            font: 'inherit', background: 'none', border: 0, padding: 0,
+                            cursor: 'pointer', textAlign: 'left', color: 'inherit',
+                            textDecoration: done ? 'line-through' : 'none',
+                          }}>
+                    {s.title}
+                  </button>
+                  <span className="card-meta" style={{ marginLeft: 'auto' }}>
+                    {s.type === 'habit' ? 'habit' : dateText(s) || 'chưa có ngày'}
+                  </span>
+                </div>
+              )
+            })}
           </div>
         )}
 
