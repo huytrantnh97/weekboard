@@ -157,14 +157,14 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       {unscheduled.length > 0 && (
         <Section title="Chưa sắp lịch" count={unscheduled.length}
                  hint="thuộc tuần này, chưa xếp vào ngày nào">
-          <GroupedItems items={unscheduled} topicsById={topicsById}
+          <GroupedItems items={unscheduled} topicsById={topicsById} collapsible
                         onToggle={toggle} onOpen={openEditor} />
         </Section>
       )}
 
       {overdue.length > 0 && (
         <Section title="Quá hạn" count={overdue.length}>
-          <GroupedItems items={overdue} topicsById={topicsById} overdue
+          <GroupedItems items={overdue} topicsById={topicsById} overdue collapsible
                         onToggle={toggle} onOpen={openEditor} />
         </Section>
       )}
@@ -178,7 +178,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
                      : ''}>
           {groups[key].length === 0
             ? <div className="empty">Chưa có gì.</div>
-            : <GroupedItems items={groups[key]} topicsById={topicsById}
+            : <GroupedItems items={groups[key]} topicsById={topicsById} collapsible
                             onToggle={toggle} onOpen={openEditor} />}
         </Section>
       ))}
