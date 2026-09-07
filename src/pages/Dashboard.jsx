@@ -14,8 +14,9 @@ import StuffForm from '../components/StuffForm'
 import ReflectModal from '../components/ReflectModal'
 import SearchModal from '../components/SearchModal'
 import {
-  SearchIcon, PlusIcon, PlanIcon, CheckIcon, LibraryIcon, LogoutIcon, ReflectIcon,
+  SearchIcon, PlusIcon, PlanIcon, CheckIcon, LibraryIcon, ReflectIcon,
 } from '../components/Icons'
+import SettingsMenu from '../components/SettingsMenu'
 
 const TITLES = {
   next_week:  'Next week',
@@ -141,12 +142,8 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
               <LibraryIcon />
             </button>
           )}
-          {onSignOut && (
-            <button className="btn ghost icon-btn" title="Đăng xuất" aria-label="Đăng xuất"
-                    onClick={() => { if (confirm('Đăng xuất khỏi WeekBoard?')) onSignOut() }}>
-              <LogoutIcon />
-            </button>
-          )}
+          {/* Bánh răng gom: đổi nền + đăng xuất */}
+          <SettingsMenu onSignOut={onSignOut} />
         </div>
       </header>
 
