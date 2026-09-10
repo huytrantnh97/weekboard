@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useDraggable } from '@dnd-kit/core'
 import { groupByTopic } from '../lib/dates'
 import StuffCard from './StuffCard'
 
@@ -13,7 +14,8 @@ const UNGROUPED = 'Chưa nhóm'
  */
 export default function GroupedItems({ items, topicsById = {}, onToggle, onOpen,
                                        overdue = false, hideDate = false,
-                                       collapsible = false, className }) {
+                                       collapsible = false, draggable = false,
+                                       className }) {
   const groups = groupByTopic(items, topicsById)
   const [closed, setClosed] = useState({})   // { [key]: true } = đang thu gọn
 
@@ -31,9 +33,9 @@ export default function GroupedItems({ items, topicsById = {}, onToggle, onOpen,
                   hẹp, việc để trống nhìn gọn hơn. */}
               {g.title && <div className="topic-group-label">{g.title}</div>}
               {g.items.map((it) => (
-                <StuffCard key={it.key ?? it.id} item={it}
-                           onToggle={onToggle} onOpen={onOpen}
-                           overdue={overdue} hideDate={hideDate} />
+                <Item key={it.key ?? it.id} item={it} draggable={draggable}
+                      onToggle={onToggle} onOpen={onOpen}
+                      overdue={overdue} hideDate={hideDate} />
               ))}
             </div>
           )
@@ -64,13 +66,31 @@ export default function GroupedItems({ items, topicsById = {}, onToggle, onOpen,
             </button>
 
             {!isClosed && g.items.map((it) => (
-              <StuffCard key={it.key ?? it.id} item={it}
-                         onToggle={onToggle} onOpen={onOpen}
-                         overdue={overdue} hideDate={hideDate} />
+              <Item key={it.key ?? it.id} item={it} draggable={draggable}
+                    onToggle={onToggle} onOpen={onOpen}
+                    overdue={overdue} hideDate={hideDate} />
             ))}
           </div>
         )
       })}
+    </div>
+  )
+}
+
+/**
+ * Một thẻ. Khi draggable = true thì kéo được sang ô ngày khác.
+ * Habit không kéo: nó do quy tắc lặp quyết định, không nằm ở một ngày cố định.
+ */
+function Item({ item, draggable, ...rest }) {
+  if (!draggable || item.type === 'habit') return <StuffCard item={item} {...rest} />
+  return <DraggableCard item={item} {...rest} />
+}
+
+function DraggableCard({ item, ...rest }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: item.id })
+  return (
+    <div ref={setNodeRef} style={{ opacity: isDragging ? 0.35 : 1 }}>
+      <StuffCard item={item} dragProps={{ ...listeners, ...attributes }} {...rest} />
     </div>
   )
 }

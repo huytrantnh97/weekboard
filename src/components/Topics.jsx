@@ -6,6 +6,17 @@ import {
 import { dateText, horizons, sortStuff } from '../lib/dates'
 import StuffForm from './StuffForm'
 
+/** 5 Areas cố định. Giá trị lưu trong DB là key bên trái. */
+export const AREAS = [
+  ['health', 'Health'],
+  ['career', 'Career'],
+  ['finance', 'Finance'],
+  ['belongings', 'Belongings'],
+  ['relationship', 'Relationship'],
+]
+const AREA_LABEL = Object.fromEntries(AREAS)
+const NO_AREA = '_none'
+
 /**
  * Topics/Goals to brainstorm.
  * Bấm một chip để mở ra: sửa tên, xem việc đã sinh ra từ topic đó,
@@ -14,6 +25,7 @@ import StuffForm from './StuffForm'
 export default function Topics({ topics, stuff, onChanged }) {
   const [openId, setOpenId] = useState(null)
   const [draft, setDraft] = useState('')
+  const [draftArea, setDraftArea] = useState('health')
   const [editing, setEditing] = useState(undefined)   // undefined = đóng
   const [meId, setMeId] = useState(null)
 
@@ -31,7 +43,7 @@ export default function Topics({ topics, stuff, onChanged }) {
     const t = draft.trim()
     if (!t) return
     setDraft('')
-    await createTopic(t)
+    await createTopic(t, draftArea)
     onChanged?.()
   }
 
@@ -39,29 +51,46 @@ export default function Topics({ topics, stuff, onChanged }) {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      <div className="topic-list">
-        {topics.map((t) => {
-          const n = stuff.filter((s) => s.topic_id === t.id).length
-          return (
-            <span key={t.id} className={`topic ${t.id === openId ? 'topic-on' : ''}`}>
-              <button type="button" className="topic-label"
-                      onClick={() => setOpenId(t.id === openId ? null : t.id)}>
-                {t.title}
-              </button>
-              {n > 0 && <span className="topic-n">{n}</span>}
-              {t.link && (
-                <a className="topic-link" href={t.link}
-                   target="_blank" rel="noopener noreferrer"
-                   title={t.link} aria-label={`Mở link của ${t.title}`}
-                   onClick={(e) => e.stopPropagation()}>↗</a>
-              )}
-            </span>
-          )
-        })}
-      </div>
+      {/* Gom chip theo Area. Area nào chưa có topic nào thì không hiện,
+          để phần này không bị loãng bởi các tiêu đề rỗng. */}
+      {[...AREAS.map(([k]) => k), NO_AREA].map((areaKey) => {
+        const list = topics.filter((t) => (t.area || NO_AREA) === areaKey)
+        if (list.length === 0) return null
+        return (
+          <div key={areaKey}>
+            <div className="eyebrow" style={{ marginBottom: 6 }}>
+              {AREA_LABEL[areaKey] ?? 'Chưa phân loại'} · {list.length}
+            </div>
+            <div className="topic-list">
+              {list.map((t) => {
+                const n = stuff.filter((s) => s.topic_id === t.id).length
+                return (
+                  <span key={t.id} className={`topic ${t.id === openId ? 'topic-on' : ''}`}>
+                    <button type="button" className="topic-label"
+                            onClick={() => setOpenId(t.id === openId ? null : t.id)}>
+                      {t.title}
+                    </button>
+                    {n > 0 && <span className="topic-n">{n}</span>}
+                    {t.link && (
+                      <a className="topic-link" href={t.link}
+                         target="_blank" rel="noopener noreferrer"
+                         title={t.link} aria-label={`Mở link của ${t.title}`}
+                         onClick={(e) => e.stopPropagation()}>↗</a>
+                    )}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })}
 
-      <form onSubmit={add} style={{ display: 'flex', gap: 6 }}>
-        <input className="field" style={{ flex: 1 }}
+      <form onSubmit={add} style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <select className="field" style={{ width: 140 }}
+                value={draftArea} onChange={(e) => setDraftArea(e.target.value)}>
+          {AREAS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
+        <input className="field" style={{ flex: 1, minWidth: 160 }}
                placeholder="Thêm chủ đề / mục tiêu…"
                value={draft} onChange={(e) => setDraft(e.target.value)} />
         <button className="btn" type="submit">Thêm</button>
@@ -89,6 +118,7 @@ function TopicPanel({ topic, stuff, onChanged, onClose, onOpenStuff }) {
   const [name, setName] = useState(topic.title)
   const [note, setNote] = useState(topic.note ?? '')
   const [link, setLink] = useState(topic.link ?? '')
+  const [area, setArea] = useState(topic.area ?? '')
   const [draft, setDraft] = useState('')
   const [type, setType] = useState('task')
 
@@ -99,9 +129,10 @@ function TopicPanel({ topic, stuff, onChanged, onClose, onOpenStuff }) {
     const unchanged = t === topic.title
       && note === (topic.note ?? '')
       && link.trim() === (topic.link ?? '')
+      && area === (topic.area ?? '')
     if (!t || unchanged) return
     await updateTopic(topic.id, {
-      title: t, note: note || null, link: link.trim() || null,
+      title: t, note: note || null, link: link.trim() || null, area: area || null,
     })
     onChanged?.()
   }
@@ -142,6 +173,22 @@ function TopicPanel({ topic, stuff, onChanged, onClose, onOpenStuff }) {
                onBlur={saveName}
                onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()} />
         <button className="btn ghost" onClick={onClose}>Đóng</button>
+      </div>
+
+      <div>
+        <div className="eyebrow" style={{ marginBottom: 6 }}>Area</div>
+        {/* Lưu ngay khi chọn, không đợi rời ô — chọn xong đóng panel liền
+            là mất thay đổi. */}
+        <select className="field" value={area}
+                onChange={async (e) => {
+                  const v = e.target.value
+                  setArea(v)
+                  await updateTopic(topic.id, { area: v || null })
+                  onChanged?.()
+                }}>
+          <option value="">— chưa phân loại —</option>
+          {AREAS.map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+        </select>
       </div>
 
       <textarea className="field" rows={2} placeholder="Ghi chú, câu hỏi cần nghĩ…"
