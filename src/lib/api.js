@@ -75,9 +75,9 @@ export const listTopics = () =>
   supabase.from('topics').select('*').eq('status', 'open')
     .order('position').then(ok)
 
-export const createTopic = (title) =>
+export const createTopic = (title, area = null) =>
   supabase.from('topics')
-    .insert({ title, position: Date.now() }).select().single().then(ok)
+    .insert({ title, area, position: Date.now() }).select().single().then(ok)
 
 export const updateTopic = (id, patch) =>
   supabase.from('topics').update(patch).eq('id', id).select().single().then(ok)
