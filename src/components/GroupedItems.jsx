@@ -29,9 +29,7 @@ export default function GroupedItems({ items, topicsById = {}, onToggle, onOpen,
         if (!collapsible) {
           return (
             <div className="topic-group" key={key}>
-              {/* Không gộp nhóm "Chưa nhóm" bằng nhãn ở đây — trong ô ngày
-                  hẹp, việc để trống nhìn gọn hơn. */}
-              {g.title && <div className="topic-group-label">{g.title}</div>}
+              <div className="topic-group-label">{label}</div>
               {g.items.map((it) => (
                 <Item key={it.key ?? it.id} item={it} draggable={draggable}
                       onToggle={onToggle} onOpen={onOpen}
