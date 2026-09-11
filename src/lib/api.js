@@ -34,7 +34,7 @@ export const moveToDay = (id, date, position) =>
 
 /** Đúng các cột có thật trong bảng stuff. Mọi field khác của form bị loại bỏ. */
 const STUFF_COLUMNS = [
-  'topic_id', 'type', 'title', 'note', 'link', 'status',
+  'topic_id', 'parent_id', 'ignore_focus', 'type', 'title', 'note', 'link', 'status',
   'date_mode', 'start_date', 'end_date', 'start_time', 'planned_date', 'position',
   'freq', 'by_weekday', 'by_monthday', 'repeat_from', 'repeat_until',
 ]
@@ -68,6 +68,32 @@ export function normalise(f) {
   }
   return clean
 }
+
+/* ------------------------------ FOCUS MODE ------------------------------- */
+
+/** Việc con của một stuff (Break down task / Prepare for event). */
+export const createSubtask = (parentId, title) =>
+  createStuff({ type: 'task', title, parent_id: parentId, date_mode: 'none' })
+
+export const setIgnoreFocus = (id, on) => updateStuff(id, { ignore_focus: !!on })
+
+/** Resource đã gắn với một stuff. */
+export const listLinkedResources = async (stuffId) => {
+  const rows = await supabase.from('stuff_resources')
+    .select('resource_id').eq('stuff_id', stuffId).then(ok)
+  if (rows.length === 0) return []
+  return supabase.from('resources').select('*')
+    .in('id', rows.map((r) => r.resource_id)).then(ok)
+}
+
+export const linkResource = (stuffId, resourceId) =>
+  supabase.from('stuff_resources')
+    .upsert({ stuff_id: stuffId, resource_id: resourceId },
+            { onConflict: 'stuff_id,resource_id' }).then(ok)
+
+export const unlinkResource = (stuffId, resourceId) =>
+  supabase.from('stuff_resources').delete()
+    .eq('stuff_id', stuffId).eq('resource_id', resourceId).then(ok)
 
 /* ----------------------------- TOPICS ---------------------------- */
 
