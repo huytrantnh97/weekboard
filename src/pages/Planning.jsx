@@ -37,7 +37,10 @@ export default function Planning({ onDone }) {
   }
   useEffect(() => { load() }, [])
 
-  const week = useMemo(() => buildWeek(h.nextStart, stuff, logs), [stuff, logs, h])
+  // Việc con chỉ hiện bên trong việc cha (Focus mode), không xếp lịch riêng
+  const roots = useMemo(() => stuff.filter((s) => !s.parent_id), [stuff])
+
+  const week = useMemo(() => buildWeek(h.nextStart, roots, logs), [roots, logs, h])
 
   /** Việc đã trễ hạn — cần được xếp lại chứ không thể bỏ quên. */
   const isOverdue = (s) => s.status === 'open' && s.type !== 'habit'
@@ -48,14 +51,14 @@ export default function Planning({ onDone }) {
    * việc quá hạn. Việc quá hạn thường đã có planned_date ở quá khứ nên trước
    * đây bị loại ngay từ dòng đầu và không bao giờ xuất hiện để xếp lại.
    */
-  const pool = useMemo(() => stuff.filter((s) => {
+  const pool = useMemo(() => roots.filter((s) => {
     if (s.type === 'habit' || s.status === 'done') return false
     if (isOverdue(s)) return true
     if (s.planned_date) return false
     if (s.date_mode === 'none') return true
     // range / month có giao với tuần sau
     return parse(s.start_date) <= h.nextEnd && parse(s.end_date) >= h.nextStart
-  }), [stuff, h])
+  }), [roots, h])
 
   const sensors = useSensors(useSensor(PointerSensor, {
     activationConstraint: { distance: 6 },   // để nút tick vẫn bấm được

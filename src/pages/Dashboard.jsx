@@ -20,6 +20,7 @@ import {
   SearchIcon, PlusIcon, PlanIcon, CheckIcon, LibraryIcon, ReflectIcon,
 } from '../components/Icons'
 import SettingsMenu from '../components/SettingsMenu'
+import FocusMode from '../components/FocusMode'
 
 const TITLES = {
   next_week:  'Next week',
@@ -41,6 +42,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
   const [planned, setPlanned] = useState(true)
   const [journal, setJournal] = useState({})
   const [dragging, setDragging] = useState(null)
+  const [focusOpen, setFocusOpen] = useState(false)
   const h = useMemo(() => horizons(), [])
 
   const load = async () => {
@@ -55,24 +57,28 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
   }
   useEffect(() => { load() }, [])
 
-  const week = useMemo(() => buildWeek(h.thisStart, stuff, logs), [stuff, logs, h])
+  // Việc con (parent_id) chỉ hiện bên trong việc cha ở Focus mode,
+  // không lẫn vào lưới tuần và các mục bên dưới.
+  const roots = useMemo(() => stuff.filter((s) => !s.parent_id), [stuff])
+
+  const week = useMemo(() => buildWeek(h.thisStart, roots, logs), [roots, logs, h])
   const topicsById = useMemo(() => Object.fromEntries(topics.map((t) => [t.id, t])), [topics])
 
   // Các nhóm còn lại: bỏ habit (habit chỉ hiện trong lưới tuần) và bỏ việc đã xong
   const groups = useMemo(() => {
     const g = { next_week: [], in_a_month: [], later: [], no_date: [] }
-    for (const s of stuff) {
+    for (const s of roots) {
       if (s.type === 'habit' || s.status === 'done') continue
       const b = bucketOf(s, h)
       if (g[b]) g[b].push(s)
     }
     for (const k of Object.keys(g)) g[k] = sortStuff(g[k], h)
     return g
-  }, [stuff, h])
+  }, [roots, h])
 
   const overdue = useMemo(
-    () => sortStuff(stuff.filter((s) => s.type !== 'habit' && isOverdue(s, h)), h),
-    [stuff, h])
+    () => sortStuff(roots.filter((s) => s.type !== 'habit' && isOverdue(s, h)), h),
+    [roots, h])
 
   /**
    * Việc thuộc về tuần này nhưng CHƯA được xếp vào ngày cụ thể — thường do
@@ -81,10 +87,10 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
    * Việc quá hạn đã có mục riêng nên không lặp lại ở đây.
    */
   const unscheduled = useMemo(
-    () => sortStuff(stuff.filter((s) =>
+    () => sortStuff(roots.filter((s) =>
       s.type !== 'habit' && s.status === 'open' && !s.planned_date
       && bucketOf(s, h) === 'this_week' && !isOverdue(s, h)), h),
-    [stuff, h])
+    [roots, h])
 
   const toggle = async (item, on) => {
     if (item.type === 'habit') await toggleHabitLog(item.id, item.occurrence_date, on)
@@ -168,6 +174,10 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
             onClick={onOpenPlanning}>
             <PlanIcon />
           </button>
+          <button className="btn ghost icon-btn" title="Chế độ tập trung"
+                  aria-label="Chế độ tập trung" onClick={() => setFocusOpen(true)}>
+            <FocusIcon />
+          </button>
           {onOpenDone && (
             <button className="btn ghost icon-btn" title="Đã xong" aria-label="Đã xong"
                     onClick={onOpenDone}>
@@ -236,7 +246,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       </DndContext>
 
       <Section title="Topics / Goals to brainstorm" count={topics.length}>
-        <Topics topics={topics} stuff={stuff} onChanged={load} />
+        <Topics topics={topics} stuff={roots} onChanged={load} />
       </Section>
 
       {editing !== undefined && (
@@ -257,6 +267,14 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
                       onClose={() => setReflectOpen(false)} />
       )}
 
+      {focusOpen && (
+        <FocusMode
+          items={week.find((d) => d.key === iso(h.today))?.items ?? []}
+          stuff={stuff}
+          onChanged={load}
+          onClose={() => setFocusOpen(false)} />
+      )}
+
       {searchOpen && (
         <SearchModal onClose={() => setSearchOpen(false)}
                      onOpenStuff={(item) => setEditing(item)} />
@@ -267,6 +285,16 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
 
 
 
+
+function FocusIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="2" strokeLinecap="round">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.5" />
+    </svg>
+  )
+}
 
 /** Ô ngày trong lưới tuần: vừa hiện việc, vừa là chỗ thả. */
 function DayDrop({ day, topicsById, onToggle, onOpen }) {
