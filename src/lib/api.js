@@ -91,6 +91,27 @@ export const linkResource = (stuffId, resourceId) =>
     .upsert({ stuff_id: stuffId, resource_id: resourceId },
             { onConflict: 'stuff_id,resource_id' }).then(ok)
 
+/**
+ * Báo Telegram cho người vừa được chia sẻ. Gọi sau khi chia sẻ thành công.
+ * Lỗi ở đây KHÔNG được làm hỏng việc chia sẻ — xem cách gọi trong ShareBox.
+ */
+export const notifyShare = async (kind, id, email) => {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) throw new Error('Chưa đăng nhập')
+
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/notify-share`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+    body: JSON.stringify({ kind, id, email }),
+  })
+  if (!res.ok) throw new Error(await res.text())
+  return res.json()
+}
+
 export const unlinkResource = (stuffId, resourceId) =>
   supabase.from('stuff_resources').delete()
     .eq('stuff_id', stuffId).eq('resource_id', resourceId).then(ok)
