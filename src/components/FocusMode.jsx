@@ -4,8 +4,10 @@ import {
   setDone, toggleHabitLog, deleteStuff, updateStuff,
   createSubtask, setIgnoreFocus,
   listResources, listLinkedResources, linkResource, unlinkResource,
+  listTopics, supabase,
 } from '../lib/api'
 import { DateField } from './DateField'
+import StuffForm from './StuffForm'
 
 const ICON = { task: '📌', event: '◆', habit: '↻' }
 const TYPE_LABEL = { task: 'Task', event: 'Event', habit: 'Habit' }
@@ -41,6 +43,16 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
   const [panel, setPanel] = useState(null)   // 'subtasks' | 'resources' | 'schedule'
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
+  const [editing, setEditing] = useState(false)
+  const [topics, setTopics] = useState([])
+  const [meId, setMeId] = useState(null)
+
+  // StuffForm cần danh sách chủ đề và biết ai là chủ (để hiện Xoá / Chia sẻ)
+  useEffect(() => {
+    listTopics().then(setTopics).catch(() => {})
+    supabase.auth.getSession()
+      .then(({ data }) => setMeId(data?.session?.user?.id ?? null))
+  }, [])
 
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -99,7 +111,7 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
   const prepared = current?.type === 'event' && openChildren.length === 0
 
   // Đổi việc thì đóng bảng công cụ đang mở, tránh sửa nhầm việc khác
-  useEffect(() => { setPanel(null); setErr(null) }, [current?.id])
+  useEffect(() => { setPanel(null); setErr(null); setEditing(false) }, [current?.id])
 
   const run = async (fn) => {
     setBusy(true); setErr(null)
@@ -156,9 +168,22 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
             {prepared && ' · ✅ đã chuẩn bị xong'}
           </div>
 
-          <h1 style={{ fontSize: 30, lineHeight: 1.25, marginBottom: 12 }}>
-            {current.title}
-          </h1>
+          {/* Bấm vào tên để mở form sửa đầy đủ */}
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            title="Bấm để sửa"
+            style={{
+              font: 'inherit', color: 'inherit', background: 'none', border: 0,
+              padding: 0, margin: '0 0 12px', textAlign: 'left', cursor: 'pointer',
+              display: 'block', width: '100%',
+            }}
+          >
+            <span style={{ fontSize: 30, lineHeight: 1.25, fontWeight: 800,
+                           letterSpacing: '-0.02em' }}>
+              {current.title}
+            </span>
+          </button>
 
           {current.note && (
             <p style={{ whiteSpace: 'pre-wrap', color: 'var(--ink-2)', marginBottom: 12 }}>
@@ -238,6 +263,21 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
         </div>
       )}
       </div>
+
+      {editing && current && (
+        <div className="modal-bg" onClick={() => setEditing(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            {/* Habit trong lưới ngày là bản đã bung theo ngày — phải lấy dòng
+                gốc trong stuff thì form mới sửa đúng quy tắc lặp. */}
+            <StuffForm
+              item={stuff.find((x) => x.id === current.id) ?? current}
+              topics={topics} meId={meId}
+              onSaved={() => { setEditing(false); onChanged?.() }}
+              onDeleted={() => { setEditing(false); onChanged?.() }}
+              onCancel={() => setEditing(false)} />
+          </div>
+        </div>
+      )}
     </div>
   )
 
