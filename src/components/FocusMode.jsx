@@ -20,11 +20,8 @@ const nowMin = () => {
   return d.getHours() * 60 + d.getMinutes()
 }
 
-/** Còn <= 30 phút nữa là tới giờ thì coi như "đến lượt" của việc đó. */
-const SOON = 30
-/** Quá giờ hơn 60 phút thì thôi không ưu tiên nữa — nếu cứ ưu tiên mãi,
- *  một việc buổi sáng bị bỏ lỡ sẽ chiếm màn hình tới tận đêm. */
-const LATE = 60
+/** Cửa sổ "đang tới lượt": từ đúng giờ đã đặt tới 30 phút sau. */
+const WINDOW = 30
 
 /**
  * Chế độ Tập trung: chỉ hiện MỘT việc của hôm nay.
@@ -57,26 +54,41 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
     return () => document.removeEventListener('keydown', onKey)
   }, [onClose])
 
-  const { current, remaining } = useMemo(() => {
+  const { current, remaining, waiting } = useMemo(() => {
     const pool = items.filter((it) => !it.done && !it.ignore_focus)
     const now = nowMin()
 
-    // Đang tới lượt: có giờ, và giờ đó nằm quanh thời điểm hiện tại
-    const dueNow = pool
-      .filter((it) => {
-        const m = toMin(it.start_time)
-        return m !== null && m <= now + SOON && m >= now - LATE
-      })
-      .sort((a, b) => toMin(a.start_time) - toMin(b.start_time))
+    /* Ba mức ưu tiên:
+       1. Đang tới lượt — giờ hiện tại nằm trong [giờ đã đặt, +30 phút].
+          Sắp theo giờ, sớm nhất trước.
+       2. Đã qua giờ — giờ đã đặt nằm trước bây giờ (kể cả quá 30 phút).
+       3. Không đặt giờ.
+       Việc CHƯA tới giờ (giờ đặt còn ở tương lai) không hiện — nó sẽ tự
+       xuất hiện ở mức 1 khi đến giờ. */
+    const due = []      // mức 1
+    const past = []     // mức 2
+    const free = []     // mức 3
+    const later = []    // chưa tới giờ — không đưa vào danh sách hiển thị
 
-    // Còn lại: chưa đặt giờ, giờ còn xa, hoặc đã quá giờ lâu.
-    // Xáo thứ tự theo rnd để mỗi phiên bốc được việc khác nhau.
-    const rest = pool.filter((it) => !dueNow.includes(it))
-    const shuffled = rest.map((_, i) => rest[(i + rnd) % rest.length])
+    for (const it of pool) {
+      const m = toMin(it.start_time)
+      if (m === null) free.push(it)
+      else if (m > now) later.push(it)
+      else if (now <= m + WINDOW) due.push(it)
+      else past.push(it)
+    }
 
-    const ordered = [...dueNow, ...shuffled]
+    due.sort((a, b) => toMin(a.start_time) - toMin(b.start_time))
+
+    // Cùng mức ưu tiên thì bốc ngẫu nhiên: xoay vòng theo rnd, mỗi phiên khác nhau
+    const shuffle = (arr) =>
+      (arr.length ? arr.map((_, i) => arr[(i + rnd) % arr.length]) : [])
+
+    const ordered = [...due, ...shuffle(past), ...shuffle(free)]
     const pick = ordered.length ? ordered[seed % ordered.length] : null
-    return { current: pick, remaining: pool.length }
+
+    later.sort((a, b) => toMin(a.start_time) - toMin(b.start_time))
+    return { current: pick, remaining: ordered.length, waiting: later }
   }, [items, seed, rnd])
 
   const children = useMemo(
@@ -110,22 +122,34 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
 
   return (
     <div style={SHELL}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+      {/* Thanh trên cùng, bám mép — không tham gia căn giữa */}
+      <div style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span className="eyebrow">Tập trung</span>
-        <span className="card-meta">còn {remaining} việc hôm nay</span>
+        <span className="card-meta">còn {remaining} việc</span>
         <button className="btn ghost" style={{ marginLeft: 'auto' }} onClick={onClose}>
           Thoát
         </button>
       </div>
 
+      {/* Phần thân chiếm hết chỗ còn lại và căn giữa cả dọc lẫn ngang */}
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '24px 0',
+      }}>
       {!current ? (
-        <div style={{ margin: 'auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>✓</div>
-          <h1 style={{ marginBottom: 8 }}>Xong hết rồi</h1>
-          <p className="card-meta">Không còn việc nào cho hôm nay.</p>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>{waiting.length ? '🕒' : '✓'}</div>
+          <h1 style={{ marginBottom: 8 }}>
+            {waiting.length ? 'Chưa tới giờ việc nào' : 'Xong hết rồi'}
+          </h1>
+          <p className="card-meta">
+            {waiting.length
+              ? `Việc gần nhất: ${waiting[0].title} lúc ${waiting[0].start_time.slice(0, 5)}`
+              : 'Không còn việc nào cho hôm nay.'}
+          </p>
         </div>
       ) : (
-        <div style={{ margin: 'auto 0', width: '100%', maxWidth: 620 }}>
+        <div style={{ width: '100%', maxWidth: 620 }}>
           <div className="eyebrow" style={{ marginBottom: 10 }}>
             {ICON[current.type]} {TYPE_LABEL[current.type]}
             {current.start_time && ` · ${current.start_time.slice(0, 5)}`}
@@ -213,6 +237,7 @@ export default function FocusMode({ items = [], stuff = [], onChanged, onClose }
           )}
         </div>
       )}
+      </div>
     </div>
   )
 
