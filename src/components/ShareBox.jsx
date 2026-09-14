@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   listShares, shareStuff, unshareStuff,
   listResourceShares, shareResource, unshareResource,
+  notifyShare,
 } from '../lib/api'
 import { toEmail } from '../lib/identity'
 
@@ -30,7 +31,13 @@ export default function ShareBox({ id, kind = 'stuff' }) {
     setErr(null)
     setBusy(true)
     try {
-      await api.add(id, toEmail(v))
+      const email = toEmail(v)
+      await api.add(id, email)
+
+      // Báo Telegram cho người nhận. Bọc riêng vì việc chia sẻ ĐÃ thành công —
+      // Telegram hỏng không phải lý do để báo lỗi đỏ cho người dùng.
+      try { await notifyShare(kind, id, email) } catch (e3) { console.warn(e3) }
+
       setInput('')
       await load()
     } catch (e2) {
