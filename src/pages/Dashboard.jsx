@@ -22,11 +22,12 @@ import {
 import SettingsMenu from '../components/SettingsMenu'
 import FocusMode from '../components/FocusMode'
 
+// Thứ tự khai báo ở đây chính là thứ tự hiển thị trên màn hình
 const TITLES = {
+  no_date:    'No date',
   next_week:  'Next week',
   in_a_month: 'In a month',
   later:      'In more than a month',
-  no_date:    'No date',
 }
 
 export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources, onSignOut, meId }) {
