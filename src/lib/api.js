@@ -157,6 +157,10 @@ export const listShares = (stuffId) =>
 export const shareStuff = (stuffId, email) =>
   supabase.rpc('share_stuff', { p_stuff_id: stuffId, p_email: email }).then(ok)
 
+/** Email của các user khác, để chọn nhanh khi chia sẻ (cần chạy list_users.sql). */
+export const listShareTargets = () =>
+  supabase.rpc('list_share_targets').then(ok).then((rows) => rows.map((r) => r.email))
+
 export const unshareStuff = (stuffId, email) =>
   supabase.from('stuff_shares').delete()
     .eq('stuff_id', stuffId).eq('shared_with_email', email).then(ok)
