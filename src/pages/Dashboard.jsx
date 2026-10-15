@@ -10,7 +10,7 @@ import {
   horizons, buildWeek, bucketOf, isOverdue, sortStuff, iso, reflectWeek,
 } from '../lib/dates'
 import WeekBoard from '../components/WeekBoard'
-import StuffCard from '../components/StuffCard'
+import StuffCard, { isLateToday } from '../components/StuffCard'
 import GroupedItems from '../components/GroupedItems'
 import Topics from '../components/Topics'
 import StuffForm from '../components/StuffForm'
@@ -44,6 +44,8 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
   const [journal, setJournal] = useState({})
   const [dragging, setDragging] = useState(null)
   const [focusOpen, setFocusOpen] = useState(false)
+  const [loaded, setLoaded] = useState(false)
+  const [startupOpen, setStartupOpen] = useState(false)
   const h = useMemo(() => horizons(), [])
 
   const load = async () => {
@@ -53,7 +55,7 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       isWeekPlanned(h.nextStart),
       listJournal(iso(h.thisStart), iso(h.thisEnd)),
     ])
-    setStuff(s); setTopics(t); setLogs(l); setPlanned(p)
+    setStuff(s); setTopics(t); setLogs(l); setPlanned(p); setLoaded(true)
     setJournal(Object.fromEntries(j.map((e) => [e.entry_date, e.content])))
   }
   useEffect(() => { load() }, [])
@@ -92,6 +94,33 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       s.type !== 'habit' && s.status === 'open' && !s.planned_date
       && bucketOf(s, h) === 'this_week' && !isOverdue(s, h)), h),
     [roots, h])
+
+  // Stuff hôm nay đã qua giờ mà chưa xong (hiện đỏ trong lưới tuần)
+  const lateToday = useMemo(() => {
+    const now = new Date()
+    return (week.find((d) => d.key === iso(h.today))?.items ?? [])
+      .filter((it) => isLateToday(it, now)).length
+  }, [week, h])
+
+  /**
+   * Nhắc xử lý khi vừa mở app: việc quá hạn + việc chưa có ngày (+ việc hôm nay
+   * đã qua giờ). Mỗi phiên chỉ hiện một lần — kéo-để-làm-mới remount Dashboard
+   * nên cờ phải nằm ở sessionStorage chứ không phải state.
+   */
+  useEffect(() => {
+    if (!loaded) return
+    if (overdue.length + groups.no_date.length + lateToday === 0) return
+    let seen = false
+    try { seen = sessionStorage.getItem('wb_startup_seen') === '1' } catch { /* bỏ qua */ }
+    if (seen) return
+    try { sessionStorage.setItem('wb_startup_seen', '1') } catch { /* bỏ qua */ }
+    setStartupOpen(true)
+  }, [loaded])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const jumpTo = (id) => {
+    setStartupOpen(false)
+    setTimeout(() => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }
 
   const toggle = async (item, on) => {
     if (item.type === 'habit') await toggleHabitLog(item.id, item.occurrence_date, on)
@@ -221,14 +250,14 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
       )}
 
       {overdue.length > 0 && (
-        <Section title="Quá hạn" count={overdue.length}>
+        <Section id="sec-overdue" title="Quá hạn" count={overdue.length}>
           <GroupedItems items={overdue} topicsById={topicsById} overdue collapsible draggable
                         onToggle={toggle} onOpen={openEditor} />
         </Section>
       )}
 
       {Object.entries(TITLES).map(([key, title]) => (
-        <Section key={key} title={title} count={groups[key].length}
+        <Section key={key} id={`sec-${key}`} title={title} count={groups[key].length}
                  hint={key === 'next_week'
                    ? `${format(h.nextStart, 'd/M')} – ${format(h.nextEnd, 'd/M')}`
                    : key === 'in_a_month'
@@ -255,6 +284,43 @@ export default function Dashboard({ onOpenPlanning, onOpenDone, onOpenResources,
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <StuffForm item={editing} topics={topics} meId={meId}
                        onSaved={afterWrite} onDeleted={afterWrite} onCancel={closeEditor} />
+          </div>
+        </div>
+      )}
+
+      {startupOpen && (
+        <div className="modal-bg" onClick={() => setStartupOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}
+               style={{ display: 'grid', gap: 12 }}>
+            <h2>Có việc cần xử lý</h2>
+            <p className="card-meta" style={{ margin: 0 }}>
+              Dành chút thời gian xếp lịch lại hoặc ưu tiên làm ngay nhé.
+            </p>
+            {lateToday > 0 && (
+              <div style={{ color: 'var(--danger)', fontWeight: 600 }}>
+                {lateToday} việc hôm nay đã qua giờ
+              </div>
+            )}
+            {overdue.length > 0 && (
+              <button type="button" className="btn" style={{ justifyContent: 'space-between', display: 'flex' }}
+                      onClick={() => jumpTo('sec-overdue')}>
+                <span style={{ color: 'var(--danger)' }}>Quá hạn</span><b>{overdue.length}</b>
+              </button>
+            )}
+            {groups.no_date.length > 0 && (
+              <button type="button" className="btn" style={{ justifyContent: 'space-between', display: 'flex' }}
+                      onClick={() => jumpTo('sec-no_date')}>
+                <span>Chưa có ngày</span><b>{groups.no_date.length}</b>
+              </button>
+            )}
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button type="button" className="btn primary"
+                      onClick={() => { setStartupOpen(false); onOpenPlanning?.() }}>
+                Lập kế hoạch
+              </button>
+              <button type="button" className="btn ghost" style={{ marginLeft: 'auto' }}
+                      onClick={() => setStartupOpen(false)}>Để sau</button>
+            </div>
           </div>
         </div>
       )}
@@ -309,9 +375,9 @@ function DayDrop({ day, topicsById, onToggle, onOpen }) {
   )
 }
 
-function Section({ title, count, hint, children }) {
+function Section({ id, title, count, hint, children }) {
   return (
-    <section className="section">
+    <section className="section" id={id}>
       <div className="section-head">
         <h2>{title}</h2>
         {hint && <span className="eyebrow">{hint}</span>}
