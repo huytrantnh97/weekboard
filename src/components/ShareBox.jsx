@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   listShares, shareStuff, unshareStuff,
   listResourceShares, shareResource, unshareResource,
-  notifyShare,
+  notifyShare, listShareTargets,
 } from '../lib/api'
 import { toEmail } from '../lib/identity'
 
@@ -17,6 +17,7 @@ const API = {
 export default function ShareBox({ id, kind = 'stuff' }) {
   const api = API[kind]
   const [shares, setShares] = useState([])
+  const [targets, setTargets] = useState([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
@@ -24,9 +25,14 @@ export default function ShareBox({ id, kind = 'stuff' }) {
   const load = () => api.list(id).then(setShares)
   useEffect(() => { load() }, [id, kind])
 
-  const add = async (e) => {
-    e.preventDefault()
-    const v = input.trim()
+  // Danh sách user để chọn nhanh. Lỗi (chưa chạy SQL…) thì chỉ mất phần gợi ý,
+  // ô nhập tay vẫn dùng được.
+  useEffect(() => {
+    listShareTargets().then(setTargets).catch((e) => console.warn(e))
+  }, [])
+
+  const share = async (value) => {
+    const v = value.trim()
     if (!v) return
     setErr(null)
     setBusy(true)
@@ -49,10 +55,15 @@ export default function ShareBox({ id, kind = 'stuff' }) {
     }
   }
 
+  const add = (e) => { e.preventDefault(); share(input) }
+
   const remove = async (email) => {
     await api.remove(id, email)
     load()
   }
+
+  const sharedSet = new Set(shares.map((s) => s.shared_with_email))
+  const suggestions = targets.filter((e) => !sharedSet.has(e))
 
   return (
     <div>
@@ -70,8 +81,21 @@ export default function ShareBox({ id, kind = 'stuff' }) {
         </div>
       )}
 
+      {suggestions.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+          {suggestions.map((email) => (
+            <button type="button" key={email} className="btn ghost" disabled={busy}
+                    style={{ fontSize: 13, padding: '4px 10px' }}
+                    title="Bấm để chia sẻ"
+                    onClick={() => share(email)}>
+              + {email}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div style={{ display: 'flex', gap: 6 }}>
-        <input className="field" placeholder="Tên đăng nhập hoặc email…"
+        <input className="field" placeholder="Hoặc gõ tên đăng nhập / email…"
                value={input} onChange={(e) => setInput(e.target.value)}
                onKeyDown={(e) => { if (e.key === 'Enter') add(e) }} />
         <button type="button" className="btn" onClick={add} disabled={busy}
