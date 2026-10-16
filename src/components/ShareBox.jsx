@@ -18,15 +18,14 @@ export default function ShareBox({ id, kind = 'stuff' }) {
   const api = API[kind]
   const [shares, setShares] = useState([])
   const [targets, setTargets] = useState([])
-  const [input, setInput] = useState('')
+  const [pick, setPick] = useState('')
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState(null)
 
   const load = () => api.list(id).then(setShares)
   useEffect(() => { load() }, [id, kind])
 
-  // Danh sách user để chọn nhanh. Lỗi (chưa chạy SQL…) thì chỉ mất phần gợi ý,
-  // ô nhập tay vẫn dùng được.
+  // Danh sách user để chọn. Lỗi (chưa chạy list_users.sql…) thì danh sách trống.
   useEffect(() => {
     listShareTargets().then(setTargets).catch((e) => console.warn(e))
   }, [])
@@ -44,7 +43,7 @@ export default function ShareBox({ id, kind = 'stuff' }) {
       // Telegram hỏng không phải lý do để báo lỗi đỏ cho người dùng.
       try { await notifyShare(kind, id, email) } catch (e3) { console.warn(e3) }
 
-      setInput('')
+      setPick('')
       await load()
     } catch (e2) {
       // Postgres bọc message gốc trong tiền tố dài — cắt lấy phần sau dấu ":" cuối
@@ -54,8 +53,6 @@ export default function ShareBox({ id, kind = 'stuff' }) {
       setBusy(false)
     }
   }
-
-  const add = (e) => { e.preventDefault(); share(input) }
 
   const remove = async (email) => {
     await api.remove(id, email)
@@ -81,28 +78,24 @@ export default function ShareBox({ id, kind = 'stuff' }) {
         </div>
       )}
 
-      {suggestions.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-          {suggestions.map((email) => (
-            <button type="button" key={email} className="btn ghost" disabled={busy}
-                    style={{ fontSize: 13, padding: '4px 10px' }}
-                    title="Bấm để chia sẻ"
-                    onClick={() => share(email)}>
-              + {email}
-            </button>
-          ))}
+      {suggestions.length > 0 ? (
+        <div style={{ display: 'flex', gap: 6 }}>
+          <select className="field" value={pick} onChange={(e) => setPick(e.target.value)}>
+            <option value="">— Chọn người để chia sẻ —</option>
+            {suggestions.map((email) => (
+              <option key={email} value={email}>{email}</option>
+            ))}
+          </select>
+          <button type="button" className="btn" disabled={busy || !pick}
+                  onClick={() => share(pick)} style={{ flex: '0 0 auto' }}>
+            {busy ? '…' : 'Chia sẻ'}
+          </button>
         </div>
+      ) : (
+        <p className="card-meta" style={{ margin: 0 }}>
+          {targets.length === 0 ? 'Chưa có người dùng nào khác.' : 'Đã chia sẻ với tất cả mọi người.'}
+        </p>
       )}
-
-      <div style={{ display: 'flex', gap: 6 }}>
-        <input className="field" placeholder="Hoặc gõ tên đăng nhập / email…"
-               value={input} onChange={(e) => setInput(e.target.value)}
-               onKeyDown={(e) => { if (e.key === 'Enter') add(e) }} />
-        <button type="button" className="btn" onClick={add} disabled={busy}
-                style={{ flex: '0 0 auto' }}>
-          {busy ? '…' : 'Chia sẻ'}
-        </button>
-      </div>
 
       {err && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 6 }}>{err}</p>}
     </div>
